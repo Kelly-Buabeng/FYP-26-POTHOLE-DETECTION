@@ -1,0 +1,124 @@
+"""
+Detection repository — all Supabase reads/writes in one place.
+Falls back to mock data if credentials are not configured.
+"""
+
+import uuid
+import random
+from typing import Optional
+
+from app.db.client import get_db
+from app.schemas.detection import DetectionItem, HeatmapPoint, StatsResponse
+from app.core.config import get_settings
+
+
+def _is_configured() -> bool:
+    settings = get_settings()
+    return (
+        settings.supabase_url != ""
+        and settings.supabase_service_key != "your-service-role-key-here"
+    )
+
+
+async def save_detection(
+    lat: float,
+    lng: float,
+    confidence: float,
+    detections: list[DetectionItem],
+    device_id: str,
+) -> Optional[str]:
+    if not _is_configured():
+        mock_id = str(uuid.uuid4())
+        print(f"[DB] Mock save — lat={lat}, lng={lng}, conf={confidence:.2f}, id={mock_id}")
+        return mock_id
+
+    data = {
+        "device_id": device_id,
+        "lat": lat,
+        "lng": lng,
+        "confidence": confidence,
+        "detections": [d.model_dump() for d in detections],
+    }
+
+    result = get_db().table("detections").insert(data).execute()
+    if result.data:
+        return result.data[0]["id"]
+    return None
+
+
+async def get_heatmap_points(
+    limit: int = 500,
+    min_confidence: float = 0.4,
+) -> list[HeatmapPoint]:
+    if not _is_configured():
+        return _mock_heatmap()
+
+    result = (
+        get_db()
+        .table("detections")
+        .select("lat, lng, confidence")
+        .gte("confidence", min_confidence)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    return [
+        HeatmapPoint(lat=r["lat"], lng=r["lng"], intensity=r["confidence"])
+        for r in (result.data or [])
+    ]
+
+
+async def get_stats() -> StatsResponse:
+    if not _is_configured():
+        return StatsResponse(
+            total_detections=0,
+            avg_confidence=0.0,
+            devices_active=0,
+            mock_mode=True,
+        )
+
+    result = get_db().table("detections").select("confidence, device_id").execute()
+    rows = result.data or []
+    confs = [r["confidence"] for r in rows]
+    devices = set(r["device_id"] for r in rows)
+
+    return StatsResponse(
+        total_detections=len(rows),
+        avg_confidence=round(sum(confs) / len(confs), 4) if confs else 0.0,
+        devices_active=len(devices),
+        mock_mode=False,
+    )
+
+
+async def delete_detection(detection_id: str) -> bool:
+    if not _is_configured():
+        return True
+
+    result = (
+        get_db()
+        .table("detections")
+        .delete()
+        .eq("id", detection_id)
+        .execute()
+    )
+    return bool(result.data)
+
+
+def _mock_heatmap() -> list[HeatmapPoint]:
+    """Dev-only sample data so the frontend works without real detections."""
+    random.seed(42)
+    clusters = [
+        (5.6037, -0.1870),  # Accra — swap for your city
+        (5.5560, -0.1969),
+        (5.6500, -0.1800),
+    ]
+    points = []
+    for base_lat, base_lng in clusters:
+        for _ in range(12):
+            points.append(HeatmapPoint(
+                lat=base_lat + random.uniform(-0.02, 0.02),
+                lng=base_lng + random.uniform(-0.02, 0.02),
+                intensity=round(random.uniform(0.45, 0.97), 2),
+            ))
+    return points
