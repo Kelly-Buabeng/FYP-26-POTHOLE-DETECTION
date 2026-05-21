@@ -35,7 +35,13 @@ pip install -r requirements.txt
 
 # 2. Configure environment
 cp .env.example .env
-# Fill in SUPABASE_URL and SUPABASE_SERVICE_KEY
+# Fill in the following values in `.env` (names are case-insensitive):
+# - `SUPABASE_URL` (or `supabase_url`)
+# - `SUPABASE_SERVICE_KEY` (or `supabase_service_key`)
+# - `API_KEY` (or `api_key`) — required for all protected endpoints
+# - `MODEL_PATH` (or `model_path`) — defaults to `yolov8n.pt`
+# - `CONFIDENCE_THRESHOLD` (or `confidence_threshold`) — default `0.35`
+# - `APP_PORT` (or `app_port`) — default `8000`
 
 # 3. Run Supabase schema
 # Paste schema.sql into Supabase Dashboard > SQL Editor > Run
@@ -78,3 +84,16 @@ The `/api/v1/detect` endpoint accepts `multipart/form-data` with:
 - `lat` — latitude from NEO-6M GPS
 - `lng` — longitude from NEO-6M GPS
 - `device_id` — ESP32-CAM unit identifier
+
+Notes and constraints for `/api/v1/detect`:
+- Requires header `X-API-Key` with a valid API key (set `API_KEY` in `.env`).
+- Accepts common image types (JPEG/PNG) only; server validates `Content-Type`.
+- Maximum image size: 10 MB. Large files return HTTP 413.
+- Coordinates are validated to fall within Ghana's bounding box by default (lat: 4.5–11.5, lng: -3.5–1.5). Requests outside this box are rejected.
+- A detection is considered a pothole only if the model returns a `label` of `pothole` with confidence >= 0.4; the app will persist confirmed detections to Supabase.
+
+## Database / Supabase
+
+- The schema in `schema.sql` requires the PostGIS extension and includes a `detections` table with a `location` geography column and a `severity` column (`Low`/`Medium`/`High`).
+- The SQL file creates a trigger that auto-populates the `location` geography from `lat`/`lng` on insert/update.
+- If you already have an older schema, `schema.sql` includes an `ALTER TABLE` snippet to add the `severity` column if missing.
