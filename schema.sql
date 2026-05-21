@@ -1,4 +1,7 @@
-
+-- ============================================
+-- FYP-26 Pothole Detection — Supabase Schema
+-- Run in: Supabase Dashboard > SQL Editor
+-- ============================================
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 
@@ -9,15 +12,17 @@ CREATE TABLE IF NOT EXISTS detections (
     lng         DOUBLE PRECISION NOT NULL,
     location    GEOGRAPHY(Point, 4326),
     confidence  DOUBLE PRECISION NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    severity    TEXT NOT NULL DEFAULT 'Low' CHECK (severity IN ('Low', 'Medium', 'High')),
     detections  JSONB NOT NULL DEFAULT '[]',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_detections_location  ON detections USING GIST(location);
-CREATE INDEX IF NOT EXISTS idx_detections_created   ON detections(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_detections_location   ON detections USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_detections_created    ON detections(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_detections_confidence ON detections(confidence);
+CREATE INDEX IF NOT EXISTS idx_detections_severity   ON detections(severity);
 
--- Auto-populate the PostGIS geography column from lat/lng on every insert
+-- Auto-populate PostGIS geography from lat/lng
 CREATE OR REPLACE FUNCTION set_detection_location()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -30,6 +35,10 @@ DROP TRIGGER IF EXISTS trg_set_location ON detections;
 CREATE TRIGGER trg_set_location
     BEFORE INSERT OR UPDATE ON detections
     FOR EACH ROW EXECUTE FUNCTION set_detection_location();
+
+-- If you already ran the old schema, just add the severity column:
+-- ALTER TABLE detections ADD COLUMN IF NOT EXISTS severity TEXT NOT NULL DEFAULT 'Low' CHECK (severity IN ('Low', 'Medium', 'High'));
+-- CREATE INDEX IF NOT EXISTS idx_detections_severity ON detections(severity);
 
 -- Verify
 SELECT column_name, data_type FROM information_schema.columns
