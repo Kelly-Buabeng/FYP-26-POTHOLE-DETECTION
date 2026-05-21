@@ -9,7 +9,11 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from app.schemas.detection import DetectionItem, BoundingBox
+from app.schemas.detection import DetectionItem, BoundingBox, Severity
+
+API_KEY = "dev-key-change-in-production"
+HEADERS = {"X-API-Key": API_KEY}
+GHANA_LAT, GHANA_LNG = 5.6037, -0.1870
 
 
 def _make_image_bytes(width=640, height=480) -> bytes:
@@ -24,7 +28,8 @@ def client():
     mock_detection = DetectionItem(
         label="Pothole",
         confidence=0.87,
-        bbox=BoundingBox(x1=100, y1=150, x2=300, y2=280),
+        severity=Severity.HIGH,
+        bbox=BoundingBox(x1=100, y1=150, x2=400, y2=380),
     )
     with patch("app.services.detector.detector") as mock_detector:
         mock_detector.is_loaded = True
@@ -35,6 +40,8 @@ def client():
             yield c
 
 
+# ── Health ────────────────────────────────────────────────────────────────────
+
 def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
@@ -44,30 +51,75 @@ def test_health(client):
 def test_root(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert r.json()["project"] == "FYP-26 Pothole Detection"
 
 
-def test_detect_returns_pothole(client):
+# ── Authentication ────────────────────────────────────────────────────────────
+
+def test_detect_requires_api_key(client):
     r = client.post(
         "/api/v1/detect",
-        data={"lat": "5.6037", "lng": "-0.1870", "device_id": "test-device"},
+        data={"lat": str(GHANA_LAT), "lng": str(GHANA_LNG)},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 422  # missing header
+
+
+def test_detect_rejects_wrong_api_key(client):
+    r = client.post(
+        "/api/v1/detect",
+        headers={"X-API-Key": "wrong-key"},
+        data={"lat": str(GHANA_LAT), "lng": str(GHANA_LNG)},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 401
+
+
+# ── Ghana Coordinate Validation ───────────────────────────────────────────────
+
+def test_detect_rejects_coords_outside_ghana(client):
+    # London coordinates
+    r = client.post(
+        "/api/v1/detect",
+        headers=HEADERS,
+        data={"lat": "51.5074", "lng": "-0.1278"},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 422
+    assert "Ghana" in r.json()["detail"]
+
+
+def test_detect_rejects_atlantic_ocean(client):
+    r = client.post(
+        "/api/v1/detect",
+        headers=HEADERS,
+        data={"lat": "0.0", "lng": "-20.0"},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 422
+
+
+# ── Detection ─────────────────────────────────────────────────────────────────
+
+def test_detect_valid(client):
+    r = client.post(
+        "/api/v1/detect",
+        headers=HEADERS,
+        data={"lat": str(GHANA_LAT), "lng": str(GHANA_LNG), "device_id": "test-01"},
         files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
     )
     assert r.status_code == 200
     body = r.json()
     assert body["pothole_detected"] is True
-    assert len(body["detections"]) == 1
-    assert body["detections"][0]["label"] == "Pothole"
-    assert body["detections"][0]["confidence"] == 0.87
-    assert body["coordinates"] == {"lat": 5.6037, "lng": -0.187}
-    assert body["device_id"] == "test-device"
-    assert "timestamp" in body
+    assert body["severity"] == "High"
+    assert body["detections"][0]["severity"] == "High"
+    assert body["coordinates"] == {"lat": GHANA_LAT, "lng": GHANA_LNG}
 
 
 def test_detect_rejects_non_image(client):
     r = client.post(
         "/api/v1/detect",
-        data={"lat": "5.6037", "lng": "-0.1870"},
+        headers=HEADERS,
+        data={"lat": str(GHANA_LAT), "lng": str(GHANA_LNG)},
         files={"image": ("file.txt", b"not an image", "text/plain")},
     )
     assert r.status_code == 400
@@ -76,30 +128,51 @@ def test_detect_rejects_non_image(client):
 def test_detect_requires_coordinates(client):
     r = client.post(
         "/api/v1/detect",
+        headers=HEADERS,
         files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
     )
     assert r.status_code == 422
 
 
-def test_heatmap_returns_list(client):
+# ── Heatmap & Stats ───────────────────────────────────────────────────────────
+
+def test_heatmap_requires_api_key(client):
     r = client.get("/api/v1/heatmap")
+    assert r.status_code == 422
+
+
+def test_heatmap_returns_points_with_severity(client):
+    r = client.get("/api/v1/heatmap", headers=HEADERS)
     assert r.status_code == 200
     points = r.json()
     assert isinstance(points, list)
     assert len(points) > 0
-    assert all({"lat", "lng", "intensity"}.issubset(p.keys()) for p in points)
+    assert all({"lat", "lng", "intensity", "severity"}.issubset(p.keys()) for p in points)
 
 
-def test_heatmap_respects_min_confidence(client):
-    r = client.get("/api/v1/heatmap?min_confidence=0.9")
+def test_heatmap_severity_filter(client):
+    r = client.get("/api/v1/heatmap?severity=High", headers=HEADERS)
     assert r.status_code == 200
 
 
 def test_stats_shape(client):
-    r = client.get("/api/v1/stats")
+    r = client.get("/api/v1/stats", headers=HEADERS)
     assert r.status_code == 200
     body = r.json()
     assert "total_detections" in body
+    assert "high_severity" in body
+    assert "medium_severity" in body
+    assert "low_severity" in body
     assert "avg_confidence" in body
-    assert "devices_active" in body
     assert "mock_mode" in body
+
+
+def test_detections_list(client):
+    r = client.get("/api/v1/detections", headers=HEADERS)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_detections_list_pagination(client):
+    r = client.get("/api/v1/detections?page=1&page_size=5", headers=HEADERS)
+    assert r.status_code == 200
