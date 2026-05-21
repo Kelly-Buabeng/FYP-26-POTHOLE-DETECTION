@@ -1,6 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from enum import Enum
+
+
+class Severity(str, Enum):
+    LOW = "Low"
+    MEDIUM = "Medium"
+    HIGH = "High"
 
 
 class BoundingBox(BaseModel):
@@ -13,19 +19,14 @@ class BoundingBox(BaseModel):
 class DetectionItem(BaseModel):
     label: str
     confidence: float = Field(ge=0.0, le=1.0)
+    severity: Severity
     bbox: BoundingBox
-
-
-class DetectionRequest(BaseModel):
-    """Used when submitting via JSON (not multipart). For IoT/ESP32-CAM use the /detect endpoint."""
-    lat: float = Field(ge=-90, le=90)
-    lng: float = Field(ge=-180, le=180)
-    device_id: str = "manual"
 
 
 class DetectionResponse(BaseModel):
     id: Optional[str]
     pothole_detected: bool
+    severity: Optional[Severity]       # worst severity in this frame
     detections: list[DetectionItem]
     coordinates: dict
     device_id: str
@@ -36,10 +37,26 @@ class HeatmapPoint(BaseModel):
     lat: float
     lng: float
     intensity: float = Field(ge=0.0, le=1.0)
+    severity: Severity = Severity.LOW
 
 
 class StatsResponse(BaseModel):
     total_detections: int
+    high_severity: int
+    medium_severity: int
+    low_severity: int
     avg_confidence: float
     devices_active: int
     mock_mode: bool
+
+
+class DetectionRecord(BaseModel):
+    """Single row returned by GET /detections"""
+    id: str
+    lat: float
+    lng: float
+    confidence: float
+    severity: Severity
+    device_id: str
+    created_at: str
+    detections: list
