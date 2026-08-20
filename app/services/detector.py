@@ -87,6 +87,44 @@ class PotholeDetector:
 
         return detections
 
+    def predict_batch(self, images: list[Image.Image]) -> list[list[DetectionItem]]:
+        if not self.is_loaded:
+            raise RuntimeError("Model not loaded.")
+
+        settings = get_settings()
+        results = self._model.predict(
+            source=images,
+            conf=settings.confidence_threshold,
+            verbose=False,
+        )
+
+        batch_detections: list[list[DetectionItem]] = []
+        for image, result in zip(images, results):
+            img_width, img_height = image.size
+            detections: list[DetectionItem] = []
+            for box in result.boxes:
+                cls_id = int(box.cls[0])
+                label = self._model.names[cls_id]
+                conf = float(box.conf[0])
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+
+                severity = _calculate_severity(x1, y1, x2, y2, img_width, img_height)
+
+                detections.append(DetectionItem(
+                    label=label,
+                    confidence=round(conf, 4),
+                    severity=severity,
+                    bbox=BoundingBox(
+                        x1=round(x1, 2),
+                        y1=round(y1, 2),
+                        x2=round(x2, 2),
+                        y2=round(y2, 2),
+                    ),
+                ))
+            batch_detections.append(detections)
+
+        return batch_detections
+
 
 # Singleton
 detector = PotholeDetector()

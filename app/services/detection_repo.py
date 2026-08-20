@@ -6,9 +6,19 @@ Falls back to mock data if credentials are not configured.
 import uuid
 import random
 from typing import Optional
+from datetime import datetime, timezone
 
 from app.db.client import get_db
-from app.schemas.detection import DetectionItem, HeatmapPoint, StatsResponse, DetectionRecord, Severity
+from app.schemas.detection import (
+    DetectionItem,
+    HeatmapPoint,
+    StatsResponse,
+    DetectionRecord,
+    Severity,
+    LiveIngestionResponse,
+    BatchSyncItemResponse,
+    BatchSyncResponse,
+)
 from app.core.config import get_settings
 
 
@@ -46,6 +56,136 @@ async def save_detection(
     if result.data:
         return result.data[0]["id"]
     return None
+
+
+async def save_video_detection(
+    file_name: str,
+    duration_ms: Optional[int],
+    fps: Optional[float],
+    total_frames: int,
+    processed_frames: int,
+    discarded_frames: int,
+    gps_coordinates: Optional[dict],
+    pothole_detected: bool,
+    best_severity: Optional[Severity],
+    best_frame_index: Optional[int],
+    frames: list,
+    device_id: str,
+) -> Optional[str]:
+    if not _is_configured():
+        return str(uuid.uuid4())
+
+    data = {
+        "device_id": device_id,
+        "file_name": file_name,
+        "duration_ms": duration_ms,
+        "fps": fps,
+        "total_frames": total_frames,
+        "processed_frames": processed_frames,
+        "discarded_frames": discarded_frames,
+        "gps_coordinates": gps_coordinates,
+        "pothole_detected": pothole_detected,
+        "best_severity": best_severity.value if best_severity else None,
+        "best_frame_index": best_frame_index,
+        "frames": frames,
+    }
+
+    result = get_db().table("video_detections").insert(data).execute()
+    if result.data:
+        return result.data[0]["id"]
+    return None
+
+
+async def save_live_detection(
+    lat: float,
+    lng: float,
+    confidence: float,
+    severity: Severity,
+    detections: list[DetectionItem],
+    device_id: str,
+    capture_timestamp: datetime,
+) -> Optional[str]:
+    if not _is_configured():
+        return str(uuid.uuid4())
+
+    data = {
+        "device_id": device_id,
+        "lat": lat,
+        "lng": lng,
+        "confidence": confidence,
+        "severity": severity.value,
+        "detections": [d.model_dump() for d in detections],
+        "source_mode": "live",
+        "capture_timestamp": capture_timestamp.isoformat(),
+    }
+
+    result = get_db().table("detections").insert(data).execute()
+    if result.data:
+        return result.data[0]["id"]
+    return None
+
+
+async def is_duplicate_detection(
+    lat: float,
+    lng: float,
+    capture_timestamp: datetime,
+    tolerance_meters: float = 5.0,
+    time_window_seconds: int = 600,
+) -> bool:
+    if not _is_configured():
+        return False
+
+    query = (
+        get_db()
+        .table("detections")
+        .select("id, lat, lng, created_at")
+        .order("created_at", desc=True)
+        .limit(25)
+    )
+    result = query.execute()
+    rows = result.data or []
+
+    for row in rows:
+        row_lat = row.get("lat")
+        row_lng = row.get("lng")
+        created_at = row.get("created_at")
+        if row_lat is None or row_lng is None or created_at is None:
+            continue
+
+        if _haversine_meters(lat, lng, float(row_lat), float(row_lng)) <= tolerance_meters:
+            try:
+                created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            except Exception:
+                continue
+            delta = abs((capture_timestamp - created_dt).total_seconds())
+            if delta <= time_window_seconds:
+                return True
+
+    return False
+
+
+def _haversine_meters(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    from math import radians, sin, cos, sqrt, atan2
+
+    earth_radius_m = 6371000.0
+    d_lat = radians(lat2 - lat1)
+    d_lng = radians(lng2 - lng1)
+    a = sin(d_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(d_lng / 2) ** 2
+    return 2 * earth_radius_m * atan2(sqrt(a), sqrt(1 - a))
+
+
+async def save_batch_sync_results(
+    results: list[BatchSyncItemResponse],
+    persisted_detections: int,
+    deduped_detections: int,
+) -> BatchSyncResponse:
+    return BatchSyncResponse(
+        total_files=len(results),
+        processed_files=len(results),
+        persisted_detections=persisted_detections,
+        deduped_detections=deduped_detections,
+        results=results,
+    )
 
 
 async def get_heatmap_points(
