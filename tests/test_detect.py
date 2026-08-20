@@ -176,3 +176,58 @@ def test_detections_list(client):
 def test_detections_list_pagination(client):
     r = client.get("/api/v1/detections?page=1&page_size=5", headers=HEADERS)
     assert r.status_code == 200
+
+
+def test_video_endpoint_rejects_non_video(client):
+    r = client.post(
+        "/api/v1/detect/video",
+        headers=HEADERS,
+        files={"video": ("clip.txt", b"not a video", "text/plain")},
+    )
+    assert r.status_code == 400
+
+
+def test_video_endpoint_returns_summary(client):
+    with patch("app.api.v1.endpoints.video.process_video_upload") as mock_process:
+        mock_process.return_value = (
+            [
+                {
+                    "frame_index": 0,
+                    "timestamp_ms": 0,
+                    "pothole_detected": True,
+                    "severity": "High",
+                    "detections": [
+                        {
+                            "label": "Pothole",
+                            "confidence": 0.91,
+                            "severity": "High",
+                            "bbox": {"x1": 10, "y1": 10, "x2": 50, "y2": 50},
+                        }
+                    ],
+                }
+            ],
+            {"lat": 5.6, "lng": -0.18},
+            {
+                "duration_ms": 1000,
+                "fps": 30.0,
+                "total_frames": 60,
+                "processed_frames": 1,
+                "discarded_frames": 1,
+                "pothole_detected": True,
+                "best_severity": "High",
+                "best_frame_index": 0,
+                "file_name": "clip.mp4",
+            },
+        )
+
+        r = client.post(
+            "/api/v1/detect/video",
+            headers=HEADERS,
+            files={"video": ("clip.mp4", b"video-bytes", "video/mp4")},
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["pothole_detected"] is True
+    assert body["best_severity"] == "High"
+    assert body["gps_coordinates"] == {"lat": 5.6, "lng": -0.18}

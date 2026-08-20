@@ -60,3 +60,25 @@ class DetectionRecord(BaseModel):
     device_id: str
     created_at: str
     detections: list
+
+
+class VideoFrameSummary(BaseModel):
+    frame_index: int
+    timestamp_ms: int
+    pothole_detected: bool
+    severity: Optional[Severity] = None
+    detections: list[DetectionItem] = Field(default_factory=list)
+
+
+class VideoDetectionResponse(BaseModel):
+    file_name: str
+    duration_ms: Optional[int] = None
+    fps: Optional[float] = None
+    total_frames: int
+    processed_frames: int
+    discarded_frames: int
+    gps_coordinates: Optional[dict] = None
+    frames: list[VideoFrameSummary]
+    pothole_detected: bool
+    best_severity: Optional[Severity] = None
+    best_frame_index: Optional[int] = None
