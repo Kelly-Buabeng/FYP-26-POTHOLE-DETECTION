@@ -73,11 +73,21 @@ pytest tests/ -v
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/detect` | Run YOLOv8 on image + GPS coords |
+| POST | `/api/v1/detect/live` | Ingest a single live frame with telemetry |
+| POST | `/api/v1/detect/batch-sync` | Sync buffered ZIP/manifest payloads from SD card |
 | POST | `/api/v1/detect/video` | Upload a video, sample frames, and detect potholes |
 | GET | `/api/v1/heatmap` | Pothole GPS points for frontend map |
 | GET | `/api/v1/stats` | Dashboard summary |
 | DELETE | `/api/v1/detections/{id}` | Remove a false positive |
 | GET | `/health` | Health check |
+
+## Dual-Mode Ingestion
+The backend now supports two ingestion modes for unstable field connectivity:
+
+- `POST /api/v1/detect/live` accepts a single frame plus decoupled GPS telemetry (`lat`, `lng`, `timestamp`, `device_id`) and stores a live detection only when the new point is not spatially close to a recent pothole record.
+- `POST /api/v1/detect/batch-sync` accepts a ZIP archive of JPEG frames plus a JSON manifest with telemetry for each frame. The backend decodes the archive, runs YOLOv8 in batch on the decoded frames, and deduplicates detections using a short-distance / recent-time filter.
+
+This keeps live driving responsive while allowing buffered SD-card syncs to be processed efficiently after reconnects.
 
 ## ESP32-CAM Integration (Phase 1 — pending)
 The `/api/v1/detect` endpoint accepts `multipart/form-data` with:

@@ -4,12 +4,14 @@ Run with: pytest tests/ -v
 """
 
 import io
+import json
+import zipfile
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from app.schemas.detection import DetectionItem, BoundingBox, Severity
+from app.schemas.detection import DetectionItem, BoundingBox, Severity, VideoFrameSummary
 
 API_KEY = "dev-key-change-in-production"
 HEADERS = {"X-API-Key": API_KEY}
@@ -188,23 +190,25 @@ def test_video_endpoint_rejects_non_video(client):
 
 
 def test_video_endpoint_returns_summary(client):
-    with patch("app.api.v1.endpoints.video.process_video_upload") as mock_process:
+    with patch("app.api.v1.endpoints.video.process_video_upload") as mock_process, patch(
+        "app.api.v1.endpoints.video.save_video_detection"
+    ) as mock_save:
         mock_process.return_value = (
             [
-                {
-                    "frame_index": 0,
-                    "timestamp_ms": 0,
-                    "pothole_detected": True,
-                    "severity": "High",
-                    "detections": [
-                        {
-                            "label": "Pothole",
-                            "confidence": 0.91,
-                            "severity": "High",
-                            "bbox": {"x1": 10, "y1": 10, "x2": 50, "y2": 50},
-                        }
+                VideoFrameSummary(
+                    frame_index=0,
+                    timestamp_ms=0,
+                    pothole_detected=True,
+                    severity=Severity.HIGH,
+                    detections=[
+                        DetectionItem(
+                            label="Pothole",
+                            confidence=0.91,
+                            severity=Severity.HIGH,
+                            bbox=BoundingBox(x1=10, y1=10, x2=50, y2=50),
+                        )
                     ],
-                }
+                )
             ],
             {"lat": 5.6, "lng": -0.18},
             {
@@ -219,6 +223,7 @@ def test_video_endpoint_returns_summary(client):
                 "file_name": "clip.mp4",
             },
         )
+        mock_save.return_value = "video-123"
 
         r = client.post(
             "/api/v1/detect/video",
@@ -228,6 +233,97 @@ def test_video_endpoint_returns_summary(client):
 
     assert r.status_code == 200
     body = r.json()
+    assert body["id"] == "video-123"
     assert body["pothole_detected"] is True
     assert body["best_severity"] == "High"
     assert body["gps_coordinates"] == {"lat": 5.6, "lng": -0.18}
+
+
+def test_live_endpoint_returns_ingestion_response(client):
+    with patch("app.api.v1.endpoints.ingestion.process_live_frame") as mock_process, patch(
+        "app.api.v1.endpoints.ingestion.is_duplicate_detection"
+    ) as mock_duplicate, patch("app.api.v1.endpoints.ingestion.save_live_detection") as mock_save:
+        mock_process.return_value = (
+            {
+                "id": None,
+                "source_mode": "live",
+                "pothole_detected": True,
+                "severity": Severity.HIGH,
+                "detections": [
+                    DetectionItem(
+                        label="Pothole",
+                        confidence=0.92,
+                        severity=Severity.HIGH,
+                        bbox=BoundingBox(x1=10, y1=10, x2=80, y2=80),
+                    )
+                ],
+                "coordinates": {"lat": GHANA_LAT, "lng": GHANA_LNG},
+                "device_id": "phone-01",
+                "capture_timestamp": "2026-08-20T12:00:00+00:00",
+                "received_timestamp": "2026-08-20T12:00:01+00:00",
+            },
+            [
+                DetectionItem(
+                    label="Pothole",
+                    confidence=0.92,
+                    severity=Severity.HIGH,
+                    bbox=BoundingBox(x1=10, y1=10, x2=80, y2=80),
+                )
+            ],
+        )
+        mock_duplicate.return_value = False
+        mock_save.return_value = "live-123"
+
+        r = client.post(
+            "/api/v1/detect/live",
+            headers=HEADERS,
+            data={
+                "lat": str(GHANA_LAT),
+                "lng": str(GHANA_LNG),
+                "timestamp": "2026-08-20T12:00:00+00:00",
+                "device_id": "phone-01",
+            },
+            files={"image": ("frame.jpg", _make_image_bytes(), "image/jpeg")},
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source_mode"] == "live"
+    assert body["id"] == "live-123"
+
+
+def test_batch_sync_endpoint_accepts_zip_and_manifest(client):
+    archive_buf = io.BytesIO()
+    with zipfile.ZipFile(archive_buf, "w") as zf:
+        zf.writestr("frame1.jpg", _make_image_bytes())
+
+    manifest_payload = {
+        "items": [
+            {
+                "filename": "frame1.jpg",
+                "lat": GHANA_LAT,
+                "lng": GHANA_LNG,
+                "timestamp": "2026-08-20T12:00:00+00:00",
+                "device_id": "sd-card-01",
+            }
+        ]
+    }
+
+    with patch("app.api.v1.endpoints.ingestion.decode_batch_payload") as mock_decode, patch(
+        "app.api.v1.endpoints.ingestion.run_batch_inference"
+    ) as mock_infer, patch("app.api.v1.endpoints.ingestion.is_duplicate_detection") as mock_duplicate:
+        mock_decode.return_value = []
+        mock_infer.return_value = []
+        mock_duplicate.return_value = False
+
+        r = client.post(
+            "/api/v1/detect/batch-sync",
+            headers=HEADERS,
+            files={
+                "archive": ("batch.zip", archive_buf.getvalue(), "application/zip"),
+                "manifest": ("manifest.json", json.dumps(manifest_payload).encode("utf-8"), "application/json"),
+            },
+        )
+
+    assert r.status_code == 200
+    assert r.json()["source_mode"] == "batch-sync"
