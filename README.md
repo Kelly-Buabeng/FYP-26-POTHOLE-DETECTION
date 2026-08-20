@@ -73,6 +73,7 @@ pytest tests/ -v
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/detect` | Run YOLOv8 on image + GPS coords |
+| POST | `/api/v1/detect/video` | Upload a video, sample frames, and detect potholes |
 | GET | `/api/v1/heatmap` | Pothole GPS points for frontend map |
 | GET | `/api/v1/stats` | Dashboard summary |
 | DELETE | `/api/v1/detections/{id}` | Remove a false positive |
@@ -91,6 +92,17 @@ Notes and constraints for `/api/v1/detect`:
 - Maximum image size: 10 MB. Large files return HTTP 413.
 - Coordinates are validated to fall within Ghana's bounding box by default (lat: 4.5–11.5, lng: -3.5–1.5). Requests outside this box are rejected.
 - A detection is considered a pothole only if the model returns a `label` of `pothole` with confidence >= 0.4; the app will persist confirmed detections to Supabase.
+
+## Video Uploads
+The `/api/v1/detect/video` endpoint accepts an uploaded road video and processes only a sampled subset of useful frames.
+
+Behavior:
+- Frames are sampled with OpenCV instead of decoding every frame.
+- Low-information frames are discarded before inference to keep the pipeline lightweight.
+- GPS metadata is returned when present in the video container metadata.
+- The response contains a compact summary of the frames that were actually analyzed.
+
+Supported inputs depend on the local OpenCV build, but MP4, MOV, and AVI are the intended upload formats.
 
 ## Database / Supabase
 
