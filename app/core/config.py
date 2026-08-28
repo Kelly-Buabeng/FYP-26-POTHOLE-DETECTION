@@ -1,11 +1,13 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic import ConfigDict
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     # Supabase
-    supabase_url: str
-    supabase_service_key: str
+    supabase_url: str = ""
+    supabase_service_key: str = ""
 
     # ML model
     model_path: str = "yolov8n.pt"
@@ -15,7 +17,12 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_port: int = 8000
 
-    model_config = {"env_file": ".env", "case_sensitive": False}
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+        protected_namespaces=(),
+    )
 
 
 @lru_cache
