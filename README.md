@@ -29,6 +29,8 @@ FYP-26-POTHOLE-DETECTION/
 
 ## Setup
 
+> Recommended runtime: Python 3.11
+
 ```bash
 # 1. Clone and install
 pip install -r requirements.txt
