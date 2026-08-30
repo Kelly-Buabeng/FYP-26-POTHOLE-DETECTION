@@ -10,7 +10,7 @@ supabase==2.5.0
 
 # ML
 ultralytics==8.2.0
-pillow==10.3.0
+pillow==11.1.0
 numpy==1.26.4
 opencv-python-headless==4.10.0.84
 pymediainfo==6.1.0
