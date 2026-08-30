@@ -13,8 +13,10 @@ CREATE TABLE IF NOT EXISTS detections (
     location    GEOGRAPHY(Point, 4326),
     confidence  DOUBLE PRECISION NOT NULL CHECK (confidence BETWEEN 0 AND 1),
     severity    TEXT NOT NULL DEFAULT 'Low' CHECK (severity IN ('Low', 'Medium', 'High')),
-    detections  JSONB NOT NULL DEFAULT '[]',
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    detections        JSONB NOT NULL DEFAULT '[]',
+    source_mode       TEXT NOT NULL DEFAULT 'api' CHECK (source_mode IN ('api', 'live', 'batch-sync')),
+    capture_timestamp TIMESTAMPTZ,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_detections_location   ON detections USING GIST(location);
