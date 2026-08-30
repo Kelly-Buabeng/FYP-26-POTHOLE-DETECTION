@@ -136,7 +136,7 @@ def process_video_upload(
                 for detection in detections
             )
             severity = _worst_severity(detections) if pothole_detected else None
-            timestamp_ms = int((sampled_index / fps) * 1000) if fps else sampled_index * sample_every_n_frames
+            timestamp_ms = int(((frame_index - 1) / fps) * 1000) if fps else sampled_index * sample_every_n_frames
 
             result = VideoFrameResult(
                 frame_index=frame_index - 1,
