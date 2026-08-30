@@ -135,6 +135,8 @@ async def is_duplicate_detection(
     if not _is_configured():
         return False
 
+    if capture_timestamp.tzinfo is None:
+        capture_timestamp = capture_timestamp.replace(tzinfo=timezone.utc)
     query = (
         get_db()
         .table("detections")
