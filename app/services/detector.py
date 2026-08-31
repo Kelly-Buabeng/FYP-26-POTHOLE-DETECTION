@@ -46,6 +46,11 @@ class PotholeDetector:
             for box in result.boxes:
                 cls_id = int(box.cls[0])
                 label = self._model.names[cls_id]
+                
+                # Filter: Only keep pothole detections
+                if label.lower() != "pothole":
+                    continue
+                    
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
 
