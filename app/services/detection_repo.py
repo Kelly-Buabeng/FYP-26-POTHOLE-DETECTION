@@ -5,6 +5,7 @@ Falls back to mock data if credentials are not configured.
 
 import uuid
 import random
+import re
 from typing import Optional
 
 from app.db.client import get_db
@@ -14,10 +15,30 @@ from app.core.config import get_settings
 
 def _is_configured() -> bool:
     settings = get_settings()
-    return (
-        settings.supabase_url != ""
-        and settings.supabase_service_key != "your-service-role-key-here"
-    )
+    key = (settings.supabase_service_key or "").strip()
+    url = (settings.supabase_url or "").strip()
+
+    if not url or not key:
+        return False
+
+    jwt_pattern = r"^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$"
+    if not re.fullmatch(jwt_pattern, key):
+        return False
+
+    placeholder_values = {
+        "changeme",
+        "replace-me",
+        "example",
+        "demo",
+        "dev-key",
+        "test-key",
+        "replace_with_supabase_service_role_key",
+    }
+    normalized = key.lower()
+    if any(normalized.startswith(p.lower()) for p in placeholder_values):
+        return False
+
+    return True
 
 
 async def save_detection(
