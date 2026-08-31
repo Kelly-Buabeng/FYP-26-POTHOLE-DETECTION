@@ -11,7 +11,11 @@ After training:
     - Restart the API server
 """
 
+import os
 from pathlib import Path
+
+os.environ.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+
 from ultralytics import YOLO
 
 DATASET_YAML = Path("dataset/data.yaml")

@@ -35,6 +35,27 @@ def client():
             yield c
 
 
+def test_load_falls_back_to_builtin_model_when_custom_weights_are_invalid():
+    from app.services import detector as detector_module
+
+    class DummyModel:
+        names = {0: "Pothole"}
+
+    def fake_yolo(path):
+        if path.endswith("ml/weights/best.pt"):
+            raise RuntimeError("weights_only incompatibility")
+        return DummyModel()
+
+    original_yolo = detector_module.YOLO
+    detector_module.YOLO = fake_yolo
+    try:
+        detector = detector_module.PotholeDetector()
+        detector.load()
+        assert detector.is_loaded is True
+    finally:
+        detector_module.YOLO = original_yolo
+
+
 def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
