@@ -7,8 +7,12 @@ to the fine-tuned pothole model.
 """
 
 import io
+import os
 from pathlib import Path
 from PIL import Image
+
+os.environ.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+
 from ultralytics import YOLO
 
 from app.core.config import get_settings
@@ -21,10 +25,34 @@ class PotholeDetector:
 
     def load(self):
         settings = get_settings()
-        model_path = settings.model_path
-        print(f"[Detector] Loading model: {model_path}")
-        self._model = YOLO(model_path)
-        print(f"[Detector] Ready. Classes: {self._model.names}")
+        model_candidates = []
+        configured_path = settings.model_path.strip()
+
+        if configured_path:
+            model_candidates.append(configured_path)
+
+        root_model = str(Path(__file__).resolve().parents[2] / "yolov8n.pt")
+        if root_model not in model_candidates:
+            model_candidates.append(root_model)
+
+        if "yolov8n.pt" not in model_candidates:
+            model_candidates.append("yolov8n.pt")
+
+        last_error: Exception | None = None
+
+        for candidate in model_candidates:
+            try:
+                print(f"[Detector] Loading model: {candidate}")
+                self._model = YOLO(candidate)
+                print(f"[Detector] Ready. Classes: {self._model.names}")
+                return
+            except Exception as exc:  # pragma: no cover - depends on runtime artifact
+                last_error = exc
+                print(f"[Detector] Failed to load {candidate}: {exc}")
+
+        raise RuntimeError(
+            "Unable to load a valid YOLO model. Please verify the trained weights or restore a valid default checkpoint."
+        ) from last_error
 
     @property
     def is_loaded(self) -> bool:
