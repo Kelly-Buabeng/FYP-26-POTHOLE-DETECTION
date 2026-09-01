@@ -26,8 +26,9 @@ def client():
         confidence=0.87,
         bbox=BoundingBox(x1=100, y1=150, x2=300, y2=280),
     )
-    with patch("app.services.detector.detector") as mock_detector:
+    with patch("app.api.v1.endpoints.detect.detector") as mock_detector:
         mock_detector.is_loaded = True
+        mock_detector.is_pothole_capable = True
         mock_detector.load = MagicMock()
         mock_detector.predict = MagicMock(return_value=[mock_detection])
         from app.main import app
@@ -54,6 +55,71 @@ def test_load_falls_back_to_builtin_model_when_custom_weights_are_invalid():
         assert detector.is_loaded is True
     finally:
         detector_module.YOLO = original_yolo
+
+
+def test_load_marks_model_without_pothole_class_as_not_capable():
+    from app.services import detector as detector_module
+
+    class CocoModel:
+        names = {0: "person", 1: "car", 2: "dog"}
+
+    original_yolo = detector_module.YOLO
+    detector_module.YOLO = lambda path: CocoModel()
+    try:
+        detector = detector_module.PotholeDetector()
+        detector.load()
+        assert detector.is_loaded is True
+        assert detector.is_pothole_capable is False
+    finally:
+        detector_module.YOLO = original_yolo
+
+
+def test_load_marks_model_with_pothole_class_as_capable():
+    from app.services import detector as detector_module
+
+    class PotholeModel:
+        names = {0: "Pothole"}
+
+    original_yolo = detector_module.YOLO
+    detector_module.YOLO = lambda path: PotholeModel()
+    try:
+        detector = detector_module.PotholeDetector()
+        detector.load()
+        assert detector.is_pothole_capable is True
+    finally:
+        detector_module.YOLO = original_yolo
+
+
+def test_predict_refuses_when_model_lacks_pothole_class():
+    from app.services import detector as detector_module
+
+    class CocoModel:
+        names = {0: "person"}
+
+    original_yolo = detector_module.YOLO
+    detector_module.YOLO = lambda path: CocoModel()
+    try:
+        detector = detector_module.PotholeDetector()
+        detector.load()
+        with pytest.raises(RuntimeError):
+            detector.predict(Image.new("RGB", (10, 10)))
+    finally:
+        detector_module.YOLO = original_yolo
+
+
+def test_detect_returns_503_when_model_not_pothole_capable():
+    with patch("app.api.v1.endpoints.detect.detector") as mock_detector:
+        mock_detector.is_loaded = True
+        mock_detector.is_pothole_capable = False
+        mock_detector.load = MagicMock()
+        from app.main import app
+        with TestClient(app) as c:
+            r = c.post(
+                "/api/v1/detect",
+                data={"lat": "5.6037", "lng": "-0.1870"},
+                files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+            )
+    assert r.status_code == 503
 
 
 def test_health(client):

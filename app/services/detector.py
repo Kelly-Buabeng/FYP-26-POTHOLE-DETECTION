@@ -22,6 +22,7 @@ from app.schemas.detection import DetectionItem, BoundingBox
 class PotholeDetector:
     def __init__(self):
         self._model: YOLO | None = None
+        self._pothole_capable: bool = False
 
     def load(self):
         settings = get_settings()
@@ -45,6 +46,19 @@ class PotholeDetector:
                 print(f"[Detector] Loading model: {candidate}")
                 self._model = YOLO(candidate)
                 print(f"[Detector] Ready. Classes: {self._model.names}")
+                self._pothole_capable = any(
+                    str(name).strip().lower() == "pothole"
+                    for name in self._model.names.values()
+                )
+                if not self._pothole_capable:
+                    print(
+                        f"[Detector] WARNING: '{candidate}' has no 'pothole' class "
+                        f"(classes: {list(self._model.names.values())}). This is not a "
+                        "pothole-trained model — the /detect endpoint will refuse to run "
+                        "detections until real trained weights are provided. Run "
+                        "ml/train.py on the pothole dataset and set MODEL_PATH to the "
+                        "resulting best.pt."
+                    )
                 return
             except Exception as exc:  # pragma: no cover - depends on runtime artifact
                 last_error = exc
@@ -58,9 +72,21 @@ class PotholeDetector:
     def is_loaded(self) -> bool:
         return self._model is not None
 
+    @property
+    def is_pothole_capable(self) -> bool:
+        """True only if the loaded model's classes actually include 'pothole'."""
+        return self._pothole_capable
+
     def predict(self, image: Image.Image) -> list[DetectionItem]:
         if not self.is_loaded:
             raise RuntimeError("Model not loaded.")
+        if not self._pothole_capable:
+            raise RuntimeError(
+                "Loaded model has no 'pothole' class — it cannot detect potholes. "
+                "The configured weights are untrained/placeholder weights. Train "
+                "ml/train.py on the pothole dataset and point MODEL_PATH to the "
+                "resulting best.pt."
+            )
 
         settings = get_settings()
         results = self._model.predict(

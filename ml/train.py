@@ -74,8 +74,6 @@ def train():
         project="runs/detect",
         name=RUN_NAME,
         exist_ok=True,
-        # Train only on pothole class (class index 0)
-        classes=[0],
         # Augmentations suited for road/daylight conditions
         hsv_h=0.015,
         hsv_s=0.5,
