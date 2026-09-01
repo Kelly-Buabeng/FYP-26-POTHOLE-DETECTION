@@ -1,5 +1,5 @@
-# Potpot fpp > 2024-03-13 10:55pm
-https://universe.roboflow.com/fyp-pothole-k4loh/potpot-fpp
+# Potholes > 2024-04-13 9:48pm
+https://universe.roboflow.com/school-projects-aygqn/potholes-kwv7g
 
 Provided by a Roboflow user
 License: CC BY 4.0
