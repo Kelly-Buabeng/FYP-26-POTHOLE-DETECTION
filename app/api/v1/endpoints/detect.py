@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 
 from app.schemas.detection import DetectionResponse
@@ -49,7 +50,7 @@ async def detect(
             ),
         )
 
-    detections = detector.predict(img)
+    detections = await run_in_threadpool(detector.predict, img)
 
     pothole_detected = any(
         d.label.lower() == "pothole" and d.confidence >= 0.4

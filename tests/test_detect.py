@@ -20,20 +20,33 @@ def _make_image_bytes(width=640, height=480) -> bytes:
 
 
 @pytest.fixture(scope="module")
-def client():
+def app_with_mock_detector():
+    """
+    Patches the detector singleton before app.main is ever imported, so both
+    the FastAPI lifespan (which calls detector.load()) and the /detect
+    endpoint bind to the same mock — this avoids loading the real YOLO model
+    during tests entirely.
+    """
+    with patch("app.services.detector.detector") as mock_detector:
+        mock_detector.is_loaded = True
+        mock_detector.is_pothole_capable = True
+        mock_detector.load = MagicMock()
+        from app.main import app
+        yield app, mock_detector
+
+
+@pytest.fixture(scope="module")
+def client(app_with_mock_detector):
+    app, mock_detector = app_with_mock_detector
     mock_detection = DetectionItem(
         label="Pothole",
         confidence=0.87,
         bbox=BoundingBox(x1=100, y1=150, x2=300, y2=280),
     )
-    with patch("app.api.v1.endpoints.detect.detector") as mock_detector:
-        mock_detector.is_loaded = True
-        mock_detector.is_pothole_capable = True
-        mock_detector.load = MagicMock()
-        mock_detector.predict = MagicMock(return_value=[mock_detection])
-        from app.main import app
-        with TestClient(app) as c:
-            yield c
+    mock_detector.is_pothole_capable = True
+    mock_detector.predict = MagicMock(return_value=[mock_detection])
+    with TestClient(app) as c:
+        yield c
 
 
 def test_load_falls_back_to_builtin_model_when_custom_weights_are_invalid():
@@ -107,18 +120,18 @@ def test_predict_refuses_when_model_lacks_pothole_class():
         detector_module.YOLO = original_yolo
 
 
-def test_detect_returns_503_when_model_not_pothole_capable():
-    with patch("app.api.v1.endpoints.detect.detector") as mock_detector:
-        mock_detector.is_loaded = True
-        mock_detector.is_pothole_capable = False
-        mock_detector.load = MagicMock()
-        from app.main import app
-        with TestClient(app) as c:
-            r = c.post(
-                "/api/v1/detect",
-                data={"lat": "5.6037", "lng": "-0.1870"},
-                files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
-            )
+def test_detect_returns_503_when_model_not_pothole_capable(client, app_with_mock_detector):
+    _, mock_detector = app_with_mock_detector
+    original = mock_detector.is_pothole_capable
+    mock_detector.is_pothole_capable = False
+    try:
+        r = client.post(
+            "/api/v1/detect",
+            data={"lat": "5.6037", "lng": "-0.1870"},
+            files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+        )
+    finally:
+        mock_detector.is_pothole_capable = original
     assert r.status_code == 503
 
 

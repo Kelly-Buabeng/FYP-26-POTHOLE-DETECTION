@@ -44,21 +44,23 @@ class PotholeDetector:
         for candidate in model_candidates:
             try:
                 print(f"[Detector] Loading model: {candidate}")
-                self._model = YOLO(candidate)
-                print(f"[Detector] Ready. Classes: {self._model.names}")
-                self._pothole_capable = any(
+                model = YOLO(candidate)
+                pothole_capable = any(
                     str(name).strip().lower() == "pothole"
-                    for name in self._model.names.values()
+                    for name in model.names.values()
                 )
-                if not self._pothole_capable:
+                print(f"[Detector] Ready. Classes: {model.names}")
+                if not pothole_capable:
                     print(
                         f"[Detector] WARNING: '{candidate}' has no 'pothole' class "
-                        f"(classes: {list(self._model.names.values())}). This is not a "
+                        f"(classes: {list(model.names.values())}). This is not a "
                         "pothole-trained model — the /detect endpoint will refuse to run "
                         "detections until real trained weights are provided. Run "
                         "ml/train.py on the pothole dataset and set MODEL_PATH to the "
                         "resulting best.pt."
                     )
+                self._model = model
+                self._pothole_capable = pothole_capable
                 return
             except Exception as exc:  # pragma: no cover - depends on runtime artifact
                 last_error = exc
