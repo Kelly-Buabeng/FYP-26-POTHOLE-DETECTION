@@ -50,12 +50,20 @@ API docs available at: http://localhost:8000/docs
 
 ## Training
 
+> ⚠️ The `ml/weights/best.pt` checked into this repo is a **placeholder** — it
+> is the untrained stock `yolov8n.pt` COCO checkpoint, not a model fine-tuned
+> on potholes. It has no `pothole` class, so `/api/v1/detect` will return
+> `503` until you train a real model and replace it. See `ml/weights/README.md`.
+
 ```bash
+# 1. Download the Roboflow dataset images into dataset/train, dataset/valid, dataset/test
+#    (https://universe.roboflow.com/fyp-pothole-k4loh/potpot-fpp/dataset/1 — gitignored, not committed)
+
 python ml/train.py
 # Weights saved to: runs/detect/pothole_v1/weights/best.pt
 cp runs/detect/pothole_v1/weights/best.pt ml/weights/best.pt
 # Update .env: MODEL_PATH=ml/weights/best.pt
-# Restart server
+# Restart server — check GET /health for "pothole_model_ready": true
 ```
 
 ## Testing

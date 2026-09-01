@@ -39,6 +39,16 @@ async def detect(
     except Exception:
         raise HTTPException(status_code=422, detail="Could not decode image.")
 
+    if not detector.is_pothole_capable:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Pothole detection model is not available: the loaded weights have no "
+                "'pothole' class (untrained/placeholder weights). Train ml/train.py on "
+                "the pothole dataset and set MODEL_PATH to the resulting best.pt."
+            ),
+        )
+
     detections = detector.predict(img)
 
     pothole_detected = any(
