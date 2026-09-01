@@ -3,11 +3,11 @@ val: ../valid/images
 test: ../test/images
 
 nc: 1
-names: ['Pothole']
+names: ['0']
 
 roboflow:
-  workspace: fyp-pothole-k4loh
-  project: potpot-fpp
+  workspace: school-projects-aygqn
+  project: potholes-kwv7g
   version: 1
   license: CC BY 4.0
-  url: https://universe.roboflow.com/fyp-pothole-k4loh/potpot-fpp/dataset/1
+  url: https://universe.roboflow.com/school-projects-aygqn/potholes-kwv7g/dataset/1
