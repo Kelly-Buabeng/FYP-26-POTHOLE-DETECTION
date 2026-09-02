@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     model_path: str = "yolov8n.pt"
     confidence_threshold: float = 0.35
 
+    # Ghana bounding box — /detect rejects coordinates outside this box
+    ghana_lat_min: float = 4.5
+    ghana_lat_max: float = 11.5
+    ghana_lng_min: float = -3.5
+    ghana_lng_max: float = 1.5
+
     # App
     app_env: str = "development"
     app_port: int = 8000
