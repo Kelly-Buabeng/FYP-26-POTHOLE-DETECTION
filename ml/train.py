@@ -20,7 +20,7 @@ from ultralytics import YOLO
 
 DATASET_YAML = Path("dataset/data.yaml")
 EPOCHS = 50
-IMG_SIZE = 640
+IMG_SIZE = 640 
 BATCH = 8           # Reduce to 4 if you run out of VRAM
 RUN_NAME = "pothole_v1"
 
@@ -74,8 +74,6 @@ def train():
         project="runs/detect",
         name=RUN_NAME,
         exist_ok=True,
-        # Train only on pothole class (class index 0)
-        classes=[0],
         # Augmentations suited for road/daylight conditions
         hsv_h=0.015,
         hsv_s=0.5,

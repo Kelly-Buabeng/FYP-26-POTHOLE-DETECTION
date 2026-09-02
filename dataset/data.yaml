@@ -2,12 +2,12 @@ train: ../train/images
 val: ../valid/images
 test: ../test/images
 
-nc: 1
-names: ['0']
+nc: 2
+names: ['Pothole', 'other']
 
 roboflow:
-  workspace: school-projects-aygqn
-  project: potholes-kwv7g
+  workspace: roadtrain-puq8q
+  project: potholes-y1qi8
   version: 1
   license: CC BY 4.0
-  url: https://universe.roboflow.com/school-projects-aygqn/potholes-kwv7g/dataset/1
+  url: https://universe.roboflow.com/roadtrain-puq8q/potholes-y1qi8/dataset/1
