@@ -3,8 +3,10 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 
+from app.core.config import get_settings
 from app.schemas.detection import DetectionResponse
 from app.services.detector import detector
 from app.services.detection_repo import save_detection
@@ -25,7 +27,22 @@ async def detect(
     - Returns all detected objects with confidence scores and bounding boxes.
     - Persists confirmed pothole detections to Supabase.
     - ESP32-CAM will POST here with multipart form data once hardware is ready.
+    - Coordinates outside Ghana are rejected with a 400 before the image is processed.
     """
+    settings = get_settings()
+    if not (settings.ghana_lat_min <= lat <= settings.ghana_lat_max) or not (
+        settings.ghana_lng_min <= lng <= settings.ghana_lng_max
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Coordinates ({lat}, {lng}) are outside Ghana's bounding box "
+                f"(lat {settings.ghana_lat_min}–{settings.ghana_lat_max}, "
+                f"lng {settings.ghana_lng_min}–{settings.ghana_lng_max}). "
+                "This service only accepts detections within Ghana."
+            ),
+        )
+
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image (JPEG or PNG).")
 
@@ -39,7 +56,17 @@ async def detect(
     except Exception:
         raise HTTPException(status_code=422, detail="Could not decode image.")
 
-    detections = detector.predict(img)
+    if not detector.is_pothole_capable:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Pothole detection model is not available: the loaded weights have no "
+                "'pothole' class (untrained/placeholder weights). Train ml/train.py on "
+                "the pothole dataset and set MODEL_PATH to the resulting best.pt."
+            ),
+        )
+
+    detections = await run_in_threadpool(detector.predict, img)
 
     pothole_detected = any(
         d.label.lower() == "pothole" and d.confidence >= 0.4
