@@ -6,6 +6,7 @@ Falls back to mock data if credentials are not configured.
 import uuid
 import random
 import re
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.db.client import get_db
@@ -112,6 +113,26 @@ async def get_stats() -> StatsResponse:
     )
 
 
+async def get_all_detections(
+    min_confidence: float = 0.0,
+    limit: int = 5000,
+) -> list[dict]:
+    """Raw detection rows for /report and /detections/export."""
+    if not _is_configured():
+        return _mock_detections(min_confidence, limit)
+
+    result = (
+        get_db()
+        .table("detections")
+        .select("id, device_id, lat, lng, confidence, detections, created_at")
+        .gte("confidence", min_confidence)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
 async def delete_detection(detection_id: str) -> bool:
     if not _is_configured():
         return True
@@ -124,6 +145,37 @@ async def delete_detection(detection_id: str) -> bool:
         .execute()
     )
     return bool(result.data)
+
+
+def _mock_detections(min_confidence: float, limit: int) -> list[dict]:
+    """Dev-only sample data so /report and /detections/export work without real detections."""
+    random.seed(42)
+    clusters = [
+        (5.6037, -0.1870, "esp32-accra"),   # Greater Accra
+        (6.6885, -1.6244, "esp32-kumasi"),  # Ashanti
+        (9.4008, -0.8393, "esp32-tamale"),  # Northern
+    ]
+    now = datetime.now(timezone.utc).isoformat()
+    rows = []
+    for base_lat, base_lng, device in clusters:
+        for _ in range(12):
+            conf = round(random.uniform(0.40, 0.97), 2)
+            if conf < min_confidence:
+                continue
+            rows.append({
+                "id": str(uuid.uuid4()),
+                "device_id": device,
+                "lat": base_lat + random.uniform(-0.05, 0.05),
+                "lng": base_lng + random.uniform(-0.05, 0.05),
+                "confidence": conf,
+                "detections": [{
+                    "label": "Pothole",
+                    "confidence": conf,
+                    "bbox": {"x1": 0, "y1": 0, "x2": 100, "y2": 100},
+                }],
+                "created_at": now,
+            })
+    return rows[:limit]
 
 
 def _mock_heatmap() -> list[HeatmapPoint]:

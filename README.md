@@ -82,6 +82,8 @@ pytest tests/ -v
 | POST | `/api/v1/detect` | Run YOLOv8 on image + GPS coords |
 | GET | `/api/v1/heatmap` | Pothole GPS points for frontend map |
 | GET | `/api/v1/stats` | Dashboard summary |
+| GET | `/api/v1/report` | Detections grouped by severity and region, for GHA |
+| GET | `/api/v1/detections/export` | Download detections as CSV or GeoJSON (`?format=csv\|geojson`), for QGIS/ArcGIS |
 | DELETE | `/api/v1/detections/{id}` | Remove a false positive |
 | GET | `/health` | Health check |
 

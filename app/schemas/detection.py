@@ -43,3 +43,22 @@ class StatsResponse(BaseModel):
     avg_confidence: float
     devices_active: int
     mock_mode: bool
+
+
+class SeverityBreakdown(BaseModel):
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+
+
+class RegionReport(BaseModel):
+    region: str
+    total: int
+    avg_confidence: float
+    severity_breakdown: SeverityBreakdown
+
+
+class ReportResponse(BaseModel):
+    generated_at: str
+    total_detections: int
+    regions: list[RegionReport]
