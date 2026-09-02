@@ -198,6 +198,25 @@ def test_detect_requires_coordinates(client):
     assert r.status_code == 422
 
 
+def test_detect_rejects_coordinates_outside_ghana(client):
+    r = client.post(
+        "/api/v1/detect",
+        data={"lat": "51.5072", "lng": "-0.1276"},  # London
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 400
+    assert "Ghana" in r.json()["detail"]
+
+
+def test_detect_accepts_coordinates_inside_ghana(client):
+    r = client.post(
+        "/api/v1/detect",
+        data={"lat": "5.6037", "lng": "-0.1870"},  # Accra
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 200
+
+
 def test_heatmap_returns_list(client):
     r = client.get("/api/v1/heatmap")
     assert r.status_code == 200
