@@ -135,6 +135,23 @@ def test_detect_returns_503_when_model_not_pothole_capable(client, app_with_mock
     assert r.status_code == 503
 
 
+def test_nearest_region_matches_known_city():
+    from app.services.geo import nearest_region
+
+    assert nearest_region(5.6037, -0.1870) == "Greater Accra"
+    assert nearest_region(6.6885, -1.6244) == "Ashanti"
+
+
+def test_severity_bucket_thresholds():
+    from app.services.geo import severity_bucket
+
+    assert severity_bucket(0.9) == "high"
+    assert severity_bucket(0.75) == "high"
+    assert severity_bucket(0.6) == "medium"
+    assert severity_bucket(0.5) == "medium"
+    assert severity_bucket(0.3) == "low"
+
+
 def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
@@ -203,3 +220,44 @@ def test_stats_shape(client):
     assert "avg_confidence" in body
     assert "devices_active" in body
     assert "mock_mode" in body
+
+
+def test_report_groups_by_region_and_severity(client):
+    r = client.get("/api/v1/report")
+    assert r.status_code == 200
+    body = r.json()
+    assert "generated_at" in body
+    assert body["total_detections"] > 0
+    assert len(body["regions"]) > 0
+    for region in body["regions"]:
+        assert {"region", "total", "avg_confidence", "severity_breakdown"}.issubset(region.keys())
+        breakdown = region["severity_breakdown"]
+        assert breakdown["high"] + breakdown["medium"] + breakdown["low"] == region["total"]
+
+
+def test_export_csv_has_expected_columns(client):
+    r = client.get("/api/v1/detections/export?format=csv")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/csv")
+    assert "attachment" in r.headers["content-disposition"]
+    header = r.text.splitlines()[0]
+    for col in ["id", "device_id", "lat", "lng", "confidence", "severity", "region"]:
+        assert col in header
+
+
+def test_export_geojson_is_valid_feature_collection(client):
+    r = client.get("/api/v1/detections/export?format=geojson")
+    assert r.status_code == 200
+    assert "attachment" in r.headers["content-disposition"]
+    body = r.json()
+    assert body["type"] == "FeatureCollection"
+    assert len(body["features"]) > 0
+    feature = body["features"][0]
+    assert feature["geometry"]["type"] == "Point"
+    assert "severity" in feature["properties"]
+    assert "region" in feature["properties"]
+
+
+def test_export_rejects_invalid_format(client):
+    r = client.get("/api/v1/detections/export?format=shapefile")
+    assert r.status_code == 422
