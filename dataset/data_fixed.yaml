@@ -1,13 +1,13 @@
 names:
 - Pothole
 nc: 1
-path: C:\Users\sbabb\Downloads\KellyDocs\Code\FYP-26-POTHOLE-DETECTION\dataset
+path: C:\Users\USER\Desktop\FYP-26-POTHOLE-DETECTION\dataset
 roboflow:
   license: CC BY 4.0
   project: potpot-fpp
   url: https://universe.roboflow.com/fyp-pothole-k4loh/potpot-fpp/dataset/1
   version: 1
   workspace: fyp-pothole-k4loh
-test: C:\Users\sbabb\Downloads\KellyDocs\Code\FYP-26-POTHOLE-DETECTION\dataset\test\images
-train: C:\Users\sbabb\Downloads\KellyDocs\Code\FYP-26-POTHOLE-DETECTION\dataset\train\images
-val: C:\Users\sbabb\Downloads\KellyDocs\Code\FYP-26-POTHOLE-DETECTION\dataset\valid\images
+test: C:\Users\USER\Desktop\FYP-26-POTHOLE-DETECTION\dataset\test\images
+train: C:\Users\USER\Desktop\FYP-26-POTHOLE-DETECTION\dataset\train\images
+val: C:\Users\USER\Desktop\FYP-26-POTHOLE-DETECTION\dataset\valid\images

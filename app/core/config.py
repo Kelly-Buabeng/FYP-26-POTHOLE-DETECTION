@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_port: int = 8000
 
-    model_config = {"env_file": ".env", "case_sensitive": False}
+    model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
 
 
 @lru_cache
