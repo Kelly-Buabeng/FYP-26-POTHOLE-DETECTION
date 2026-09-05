@@ -1,10 +1,6 @@
-import io
-import json
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from PIL import Image
 
 from app.core.dependencies import verify_api_key
 from app.schemas.detection import (
@@ -13,7 +9,13 @@ from app.schemas.detection import (
     LiveIngestionResponse,
     BatchSyncItemResponse,
 )
-from app.services.detection_repo import save_live_detection, is_duplicate_detection, save_batch_sync_results
+from app.services.detection_repo import (
+    save_live_detection,
+    is_duplicate_detection,
+    get_dedup_candidate_points,
+    save_batch_detections,
+    has_nearby_point,
+)
 from app.services.ingestion_processor import process_live_frame, decode_batch_payload, run_batch_inference
 
 router = APIRouter()
@@ -84,13 +86,23 @@ async def detect_batch_sync(
     if not decoded_frames:
         return BatchSyncResponse(total_files=0, processed_files=0, persisted_detections=0, deduped_detections=0, results=[])
 
-    detections_by_frame = run_batch_inference(decoded_frames)
+    # Process chronologically so intra-batch duplicates (the same pothole caught
+    # by several consecutive frames while driving slowly) are caught in order.
+    ordered = sorted(zip(decoded_frames, run_batch_inference(decoded_frames)), key=lambda pair: pair[0].manifest_item.timestamp)
+
+    # One prefetch instead of one query per frame; extended in-memory as frames
+    # in this batch are accepted, so later frames dedupe against earlier ones
+    # in the same sync too.
+    dedup_pool = await get_dedup_candidate_points()
 
     results: list[BatchSyncItemResponse] = []
+    pending_inserts: list[dict] = []
+    pending_result_indices: list[int] = []
     persisted = 0
     deduped = 0
 
-    for decoded_frame, detections in zip(decoded_frames, detections_by_frame):
+    for decoded_frame, detections in ordered:
+        item = decoded_frame.manifest_item
         pothole_detected = any(d.label.lower() == "pothole" and d.confidence >= 0.4 for d in detections)
         severity = None
         if pothole_detected:
@@ -98,31 +110,42 @@ async def detect_batch_sync(
 
         duplicate = False
         if pothole_detected:
-            duplicate = await is_duplicate_detection(
-                decoded_frame.manifest_item.lat,
-                decoded_frame.manifest_item.lng,
-                decoded_frame.manifest_item.timestamp,
-            )
-            if not duplicate:
-                persisted += 1
-            else:
+            duplicate = has_nearby_point(item.lat, item.lng, item.timestamp, dedup_pool)
+            if duplicate:
                 deduped += 1
 
-        results.append(
-            BatchSyncItemResponse(
-                filename=decoded_frame.manifest_item.filename,
-                pothole_detected=pothole_detected,
-                severity=severity,
-                detections=detections,
-                coordinates={"lat": decoded_frame.manifest_item.lat, "lng": decoded_frame.manifest_item.lng},
-                device_id=decoded_frame.manifest_item.device_id,
-                capture_timestamp=decoded_frame.manifest_item.timestamp,
-                received_timestamp=datetime.now(timezone.utc),
-                deduped=duplicate,
-            )
+        result = BatchSyncItemResponse(
+            filename=item.filename,
+            pothole_detected=pothole_detected,
+            severity=severity,
+            detections=detections,
+            coordinates={"lat": item.lat, "lng": item.lng},
+            device_id=item.device_id,
+            capture_timestamp=item.timestamp,
+            received_timestamp=datetime.now(timezone.utc),
+            deduped=duplicate,
         )
+        results.append(result)
 
-    await save_batch_sync_results(results, persisted, deduped)
+        if pothole_detected and not duplicate:
+            dedup_pool.append({"lat": item.lat, "lng": item.lng, "created_at": item.timestamp})
+            pending_inserts.append({
+                "device_id": item.device_id,
+                "lat": item.lat,
+                "lng": item.lng,
+                "confidence": max(d.confidence for d in detections),
+                "severity": severity.value,
+                "detections": [d.model_dump() for d in detections],
+                "source_mode": "batch-sync",
+                "capture_timestamp": item.timestamp.isoformat(),
+            })
+            pending_result_indices.append(len(results) - 1)
+            persisted += 1
+
+    inserted_ids = await save_batch_detections(pending_inserts)
+    for result_index, record_id in zip(pending_result_indices, inserted_ids):
+        results[result_index].id = record_id
+
     return BatchSyncResponse(
         total_files=len(decoded_frames),
         processed_files=len(decoded_frames),

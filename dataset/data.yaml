@@ -2,12 +2,12 @@ train: ../train/images
 val: ../valid/images
 test: ../test/images
 
-nc: 1
-names: ['Pothole']
+nc: 2
+names: ['Pothole', 'other']
 
 roboflow:
-  workspace: fyp-pothole-k4loh
-  project: potpot-fpp
+  workspace: roadtrain-puq8q
+  project: potholes-y1qi8
   version: 1
   license: CC BY 4.0
-  url: https://universe.roboflow.com/fyp-pothole-k4loh/potpot-fpp/dataset/1
+  url: https://universe.roboflow.com/roadtrain-puq8q/potholes-y1qi8/dataset/1

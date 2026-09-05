@@ -10,7 +10,13 @@ These thresholds are based on visual inspection of the Potpot dataset
 and can be tuned after field testing.
 """
 
+import os
+from pathlib import Path
+
 from PIL import Image
+
+os.environ.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+
 from ultralytics import YOLO
 
 from app.core.config import get_settings
@@ -38,21 +44,73 @@ def _calculate_severity(x1: float, y1: float, x2: float, y2: float,
 class PotholeDetector:
     def __init__(self):
         self._model: YOLO | None = None
+        self._pothole_capable: bool = False
 
     def load(self):
         settings = get_settings()
-        model_path = settings.model_path
-        print(f"[Detector] Loading model: {model_path}")
-        self._model = YOLO(model_path)
-        print(f"[Detector] Ready. Classes: {self._model.names}")
+        model_candidates = []
+        configured_path = settings.model_path.strip()
+
+        if configured_path:
+            model_candidates.append(configured_path)
+
+        root_model = str(Path(__file__).resolve().parents[2] / "yolov8n.pt")
+        if root_model not in model_candidates:
+            model_candidates.append(root_model)
+
+        if "yolov8n.pt" not in model_candidates:
+            model_candidates.append("yolov8n.pt")
+
+        last_error: Exception | None = None
+
+        for candidate in model_candidates:
+            try:
+                print(f"[Detector] Loading model: {candidate}")
+                model = YOLO(candidate)
+                pothole_capable = any(
+                    str(name).strip().lower() == "pothole"
+                    for name in model.names.values()
+                )
+                print(f"[Detector] Ready. Classes: {model.names}")
+                if not pothole_capable:
+                    print(
+                        f"[Detector] WARNING: '{candidate}' has no 'pothole' class "
+                        f"(classes: {list(model.names.values())}). This is not a "
+                        "pothole-trained model — the /detect endpoint will refuse to run "
+                        "detections until real trained weights are provided. Run "
+                        "ml/train.py on the pothole dataset and set MODEL_PATH to the "
+                        "resulting best.pt."
+                    )
+                self._model = model
+                self._pothole_capable = pothole_capable
+                return
+            except Exception as exc:  # pragma: no cover - depends on runtime artifact
+                last_error = exc
+                print(f"[Detector] Failed to load {candidate}: {exc}")
+
+        raise RuntimeError(
+            "Unable to load a valid YOLO model. Please verify the trained weights or restore a valid default checkpoint."
+        ) from last_error
 
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
 
+    @property
+    def is_pothole_capable(self) -> bool:
+        """True only if the loaded model's classes actually include 'pothole'."""
+        return self._pothole_capable
+
     def predict(self, image: Image.Image) -> list[DetectionItem]:
         if not self.is_loaded:
             raise RuntimeError("Model not loaded.")
+        if not self._pothole_capable:
+            raise RuntimeError(
+                "Loaded model has no 'pothole' class — it cannot detect potholes. "
+                "The configured weights are untrained/placeholder weights. Train "
+                "ml/train.py on the pothole dataset and point MODEL_PATH to the "
+                "resulting best.pt."
+            )
 
         img_width, img_height = image.size
         settings = get_settings()
@@ -68,6 +126,11 @@ class PotholeDetector:
             for box in result.boxes:
                 cls_id = int(box.cls[0])
                 label = self._model.names[cls_id]
+                
+                # Filter: Only keep pothole detections
+                if label.lower() != "pothole":
+                    continue
+                    
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
 
@@ -90,6 +153,13 @@ class PotholeDetector:
     def predict_batch(self, images: list[Image.Image]) -> list[list[DetectionItem]]:
         if not self.is_loaded:
             raise RuntimeError("Model not loaded.")
+        if not self._pothole_capable:
+            raise RuntimeError(
+                "Loaded model has no 'pothole' class — it cannot detect potholes. "
+                "The configured weights are untrained/placeholder weights. Train "
+                "ml/train.py on the pothole dataset and point MODEL_PATH to the "
+                "resulting best.pt."
+            )
 
         settings = get_settings()
         results = self._model.predict(
@@ -105,6 +175,11 @@ class PotholeDetector:
             for box in result.boxes:
                 cls_id = int(box.cls[0])
                 label = self._model.names[cls_id]
+
+                # Filter: Only keep pothole detections
+                if label.lower() != "pothole":
+                    continue
+
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
 

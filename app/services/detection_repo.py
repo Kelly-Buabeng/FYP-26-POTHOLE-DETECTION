@@ -5,8 +5,9 @@ Falls back to mock data if credentials are not configured.
 
 import uuid
 import random
-from typing import Optional
+import re
 from datetime import datetime, timezone
+from typing import Optional
 
 from app.db.client import get_db
 from app.schemas.detection import (
@@ -15,19 +16,36 @@ from app.schemas.detection import (
     StatsResponse,
     DetectionRecord,
     Severity,
-    LiveIngestionResponse,
-    BatchSyncItemResponse,
-    BatchSyncResponse,
 )
 from app.core.config import get_settings
 
 
 def _is_configured() -> bool:
     settings = get_settings()
-    return (
-        settings.supabase_url != ""
-        and settings.supabase_service_key != "***REMOVED-LEAKED-SUPABASE-KEY***"
-    )
+    key = (settings.supabase_service_key or "").strip()
+    url = (settings.supabase_url or "").strip()
+
+    if not url or not key:
+        return False
+
+    jwt_pattern = r"^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$"
+    if not re.fullmatch(jwt_pattern, key):
+        return False
+
+    placeholder_values = {
+        "changeme",
+        "replace-me",
+        "example",
+        "demo",
+        "dev-key",
+        "test-key",
+        "replace_with_supabase_service_role_key",
+    }
+    normalized = key.lower()
+    if any(normalized.startswith(p.lower()) for p in placeholder_values):
+        return False
+
+    return True
 
 
 async def save_detection(
@@ -147,7 +165,26 @@ async def is_duplicate_detection(
     result = query.execute()
     rows = result.data or []
 
-    for row in rows:
+    return has_nearby_point(
+        lat, lng, capture_timestamp, rows, tolerance_meters, time_window_seconds
+    )
+
+
+def has_nearby_point(
+    lat: float,
+    lng: float,
+    timestamp: datetime,
+    candidates: list[dict],
+    tolerance_meters: float = 5.0,
+    time_window_seconds: int = 600,
+) -> bool:
+    """Haversine + time-window check against an in-memory pool of {lat, lng, created_at} rows.
+
+    Used by batch-sync to dedupe a whole SD-card sync against one prefetched
+    pool (plus points already accepted earlier in the same batch) instead of
+    issuing a database round trip per frame.
+    """
+    for row in candidates:
         row_lat = row.get("lat")
         row_lng = row.get("lng")
         created_at = row.get("created_at")
@@ -155,11 +192,16 @@ async def is_duplicate_detection(
             continue
 
         if _haversine_meters(lat, lng, float(row_lat), float(row_lng)) <= tolerance_meters:
-            try:
-                created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-            except Exception:
-                continue
-            delta = abs((capture_timestamp - created_dt).total_seconds())
+            if isinstance(created_at, datetime):
+                created_dt = created_at
+            else:
+                try:
+                    created_dt = datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
+                except Exception:
+                    continue
+            if created_dt.tzinfo is None:
+                created_dt = created_dt.replace(tzinfo=timezone.utc)
+            delta = abs((timestamp - created_dt).total_seconds())
             if delta <= time_window_seconds:
                 return True
 
@@ -176,18 +218,41 @@ def _haversine_meters(lat1: float, lng1: float, lat2: float, lng2: float) -> flo
     return 2 * earth_radius_m * atan2(sqrt(a), sqrt(1 - a))
 
 
-async def save_batch_sync_results(
-    results: list[BatchSyncItemResponse],
-    persisted_detections: int,
-    deduped_detections: int,
-) -> BatchSyncResponse:
-    return BatchSyncResponse(
-        total_files=len(results),
-        processed_files=len(results),
-        persisted_detections=persisted_detections,
-        deduped_detections=deduped_detections,
-        results=results,
+async def get_dedup_candidate_points(limit: int = 200) -> list[dict]:
+    """
+    Recent {lat, lng, created_at} rows used as a dedup pool for batch-sync.
+
+    Fetched once per batch (instead of once per frame) so a whole SD-card
+    sync stays a handful of round trips instead of N.
+    """
+    if not _is_configured():
+        return []
+
+    result = (
+        get_db()
+        .table("detections")
+        .select("lat, lng, created_at")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
     )
+    return result.data or []
+
+
+async def save_batch_detections(records: list[dict]) -> list[Optional[str]]:
+    """
+    Bulk-insert non-duplicate batch-sync detections in a single round trip
+    (mirrors the model(image_list) batching used for inference).
+    """
+    if not records:
+        return []
+
+    if not _is_configured():
+        return [str(uuid.uuid4()) for _ in records]
+
+    result = get_db().table("detections").insert(records).execute()
+    rows = result.data or []
+    return [row.get("id") for row in rows]
 
 
 async def get_heatmap_points(
@@ -289,6 +354,26 @@ async def get_stats() -> StatsResponse:
     )
 
 
+async def get_all_detections(
+    min_confidence: float = 0.0,
+    limit: int = 5000,
+) -> list[dict]:
+    """Raw detection rows for /report and /detections/export."""
+    if not _is_configured():
+        return _mock_detections(min_confidence, limit)
+
+    result = (
+        get_db()
+        .table("detections")
+        .select("id, device_id, lat, lng, confidence, detections, created_at")
+        .gte("confidence", min_confidence)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
 async def delete_detection(detection_id: str) -> bool:
     if not _is_configured():
         return True
@@ -301,6 +386,37 @@ async def delete_detection(detection_id: str) -> bool:
         .execute()
     )
     return bool(result.data)
+
+
+def _mock_detections(min_confidence: float, limit: int) -> list[dict]:
+    """Dev-only sample data so /report and /detections/export work without real detections."""
+    random.seed(42)
+    clusters = [
+        (5.6037, -0.1870, "esp32-accra"),   # Greater Accra
+        (6.6885, -1.6244, "esp32-kumasi"),  # Ashanti
+        (9.4008, -0.8393, "esp32-tamale"),  # Northern
+    ]
+    now = datetime.now(timezone.utc).isoformat()
+    rows = []
+    for base_lat, base_lng, device in clusters:
+        for _ in range(12):
+            conf = round(random.uniform(0.40, 0.97), 2)
+            if conf < min_confidence:
+                continue
+            rows.append({
+                "id": str(uuid.uuid4()),
+                "device_id": device,
+                "lat": base_lat + random.uniform(-0.05, 0.05),
+                "lng": base_lng + random.uniform(-0.05, 0.05),
+                "confidence": conf,
+                "detections": [{
+                    "label": "Pothole",
+                    "confidence": conf,
+                    "bbox": {"x1": 0, "y1": 0, "x2": 100, "y2": 100},
+                }],
+                "created_at": now,
+            })
+    return rows[:limit]
 
 
 def _mock_heatmap() -> list[HeatmapPoint]:

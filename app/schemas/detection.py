@@ -157,3 +157,22 @@ class BatchSyncResponse(BaseModel):
     persisted_detections: int
     deduped_detections: int
     results: list[BatchSyncItemResponse]
+
+
+class SeverityBreakdown(BaseModel):
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+
+
+class RegionReport(BaseModel):
+    region: str
+    total: int
+    avg_confidence: float
+    severity_breakdown: SeverityBreakdown
+
+
+class ReportResponse(BaseModel):
+    generated_at: str
+    total_detections: int
+    regions: list[RegionReport]

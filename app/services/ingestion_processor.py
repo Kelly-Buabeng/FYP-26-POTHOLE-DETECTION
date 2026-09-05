@@ -25,7 +25,6 @@ from app.schemas.detection import (
     IngestionManifestItem,
     IngestionTelemetry,
     LiveIngestionResponse,
-    BatchSyncItemResponse,
 )
 from app.services.detector import detector
 
