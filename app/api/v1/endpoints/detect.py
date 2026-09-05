@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 
 from app.core.dependencies import verify_api_key, validate_ghana_coordinates
@@ -55,7 +56,17 @@ async def detect(
     except Exception:
         raise HTTPException(status_code=422, detail="Could not decode image.")
 
-    detections = detector.predict(img)
+    if not detector.is_pothole_capable:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Pothole detection model is not available: the loaded weights have no "
+                "'pothole' class (untrained/placeholder weights). Train ml/train.py on "
+                "the pothole dataset and set MODEL_PATH to the resulting best.pt."
+            ),
+        )
+
+    detections = await run_in_threadpool(detector.predict, img)
 
     pothole_detected = any(
         d.label.lower() == "pothole" and d.confidence >= 0.4

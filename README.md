@@ -56,12 +56,23 @@ API docs available at: http://localhost:8000/docs
 
 ## Training
 
+The `ml/weights/best.pt` checked into this repo is a real model fine-tuned on
+the [potholes-y1qi8](https://universe.roboflow.com/roadtrain-puq8q/potholes-y1qi8/dataset/1)
+dataset (569 images). `GET /health` reports `"pothole_model_ready": true`
+when the loaded weights actually have a `pothole` class — if you ever swap in
+untrained or mislabeled weights, `/api/v1/detect` returns `503` instead of
+silently reporting no potholes. See `ml/weights/README.md` for details,
+including plans to retrain on a larger dataset.
+
 ```bash
+# 1. Download the Roboflow dataset images into dataset/train, dataset/valid, dataset/test
+#    (see dataset/data.yaml for the current dataset URL — gitignored, not committed)
+
 python ml/train.py
 # Weights saved to: runs/detect/pothole_v1/weights/best.pt
 cp runs/detect/pothole_v1/weights/best.pt ml/weights/best.pt
 # Update .env: MODEL_PATH=ml/weights/best.pt
-# Restart server
+# Restart server — check GET /health for "pothole_model_ready": true
 ```
 
 ## Testing
@@ -80,6 +91,8 @@ pytest tests/ -v
 | POST | `/api/v1/detect/video` | Upload a video, sample frames, and detect potholes |
 | GET | `/api/v1/heatmap` | Pothole GPS points for frontend map |
 | GET | `/api/v1/stats` | Dashboard summary |
+| GET | `/api/v1/report` | Detections grouped by severity and region, for GHA |
+| GET | `/api/v1/detections/export` | Download detections as CSV or GeoJSON (`?format=csv\|geojson`), for QGIS/ArcGIS |
 | DELETE | `/api/v1/detections/{id}` | Remove a false positive |
 | GET | `/health` | Health check |
 
