@@ -41,10 +41,14 @@ def validate_ghana_coordinates(lat: float, lng: float):
             ),
         )
     if not (settings.ghana_lng_min <= lng <= settings.ghana_lng_max):
+
+        def _lng_label(value: float) -> str:
+            return f"{abs(value)}°W" if value < 0 else f"{value}°E"
+
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
                 f"Longitude {lng} is outside Ghana's bounds "
-                f"({settings.ghana_lng_min}°W – {settings.ghana_lng_max}°E)."
+                f"({_lng_label(settings.ghana_lng_min)} – {_lng_label(settings.ghana_lng_max)})."
             ),
         )

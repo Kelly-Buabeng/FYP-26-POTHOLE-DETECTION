@@ -8,6 +8,7 @@ import json
 import zipfile
 import pytest
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -225,6 +226,21 @@ def test_detect_rejects_atlantic_ocean(client):
     assert r.status_code == 422
 
 
+def test_detect_rejects_longitude_west_of_ghana_with_readable_bound(client):
+    # -20.0 is west of Ghana's -3.5 lower bound; the message should read
+    # "3.5°W", not the confusing double-negative "-3.5°W".
+    r = client.post(
+        "/api/v1/detect",
+        headers=HEADERS,
+        data={"lat": str(GHANA_LAT), "lng": "-20.0"},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert "3.5°W" in detail
+    assert "-3.5°W" not in detail
+
+
 # ── Detection ─────────────────────────────────────────────────────────────────
 
 def test_detect_valid(client):
@@ -303,6 +319,23 @@ def test_detections_list(client):
 def test_detections_list_pagination(client):
     r = client.get("/api/v1/detections?page=1&page_size=5", headers=HEADERS)
     assert r.status_code == 200
+
+
+def test_safe_upload_filename_strips_path_traversal():
+    from app.services.video_processor import _safe_upload_filename
+
+    malicious_names = ["../../etc/passwd", "/etc/passwd", "..\\..\\windows\\system32\\evil.mp4"]
+    for name in malicious_names:
+        safe = _safe_upload_filename(name)
+        assert "/" not in safe and ".." not in safe
+        # Joining with any directory can never escape it — a single path segment.
+        assert (Path("/tmp/some-temp-dir") / safe).parent == Path("/tmp/some-temp-dir")
+
+    assert _safe_upload_filename("clip.mp4") == "upload.mp4"
+    assert _safe_upload_filename("../../evil.mov") == "upload.mov"
+    # An overlong/garbage "extension" falls back to a safe default instead
+    # of being embedded verbatim in the filesystem path.
+    assert _safe_upload_filename("clip.this-is-not-a-real-extension") == "upload.mp4"
 
 
 def test_video_endpoint_rejects_non_video(client):
@@ -415,6 +448,63 @@ def test_live_endpoint_returns_ingestion_response(client):
     body = r.json()
     assert body["source_mode"] == "live"
     assert body["id"] == "live-123"
+
+
+def test_decode_batch_payload_rejects_oversized_archive(monkeypatch):
+    from app.services import ingestion_processor
+
+    monkeypatch.setattr(ingestion_processor, "MAX_ARCHIVE_BYTES", 10)
+
+    archive_buf = io.BytesIO()
+    with zipfile.ZipFile(archive_buf, "w") as zf:
+        zf.writestr("frame1.jpg", _make_image_bytes())
+    manifest_bytes = json.dumps({"items": []}).encode("utf-8")
+
+    with pytest.raises(ValueError, match="exceeding the limit"):
+        ingestion_processor.decode_batch_payload(archive_buf.getvalue(), manifest_bytes)
+
+
+def test_decode_batch_payload_rejects_zip_bomb_style_frame(monkeypatch):
+    """A frame whose declared uncompressed size blows past the per-frame cap
+    is rejected before it's ever read into memory."""
+    from app.services import ingestion_processor
+
+    monkeypatch.setattr(ingestion_processor, "MAX_FRAME_BYTES", 100)
+
+    archive_buf = io.BytesIO()
+    with zipfile.ZipFile(archive_buf, "w") as zf:
+        zf.writestr("frame1.jpg", _make_image_bytes())  # a normal JPEG, well over 100 bytes
+
+    manifest_bytes = json.dumps({
+        "items": [
+            {
+                "filename": "frame1.jpg",
+                "lat": GHANA_LAT,
+                "lng": GHANA_LNG,
+                "timestamp": "2026-08-20T12:00:00+00:00",
+            }
+        ]
+    }).encode("utf-8")
+
+    with pytest.raises(ValueError, match="per-frame limit"):
+        ingestion_processor.decode_batch_payload(archive_buf.getvalue(), manifest_bytes)
+
+
+def test_decode_batch_payload_rejects_too_many_frames(monkeypatch):
+    from app.services import ingestion_processor
+
+    monkeypatch.setattr(ingestion_processor, "MAX_FRAMES_PER_BATCH", 1)
+
+    archive_buf = io.BytesIO()
+    manifest_bytes = json.dumps({
+        "items": [
+            {"filename": "frame1.jpg", "lat": GHANA_LAT, "lng": GHANA_LNG, "timestamp": "2026-08-20T12:00:00+00:00"},
+            {"filename": "frame2.jpg", "lat": GHANA_LAT, "lng": GHANA_LNG, "timestamp": "2026-08-20T12:00:01+00:00"},
+        ]
+    }).encode("utf-8")
+
+    with pytest.raises(ValueError, match="exceeding the limit"):
+        ingestion_processor.decode_batch_payload(archive_buf.getvalue(), manifest_bytes)
 
 
 def test_batch_sync_endpoint_accepts_zip_and_manifest(client):

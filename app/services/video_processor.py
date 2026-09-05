@@ -74,6 +74,19 @@ def _parse_gps(metadata_file: Path) -> Optional[dict]:
     return None
 
 
+def _safe_upload_filename(file_name: str) -> str:
+    """
+    file_name comes straight from the client's multipart upload — never use
+    it as a path component as-is (it may contain "../" or be absolute,
+    either of which would write outside the destination directory). Keep
+    only a bounded extension so cv2/pymediainfo still see a plausible
+    format hint.
+    """
+    suffix = Path(file_name).suffix
+    safe_suffix = suffix if suffix and len(suffix) <= 10 else ".mp4"
+    return f"upload{safe_suffix}"
+
+
 def process_video_upload(
     file_bytes: bytes,
     file_name: str,
@@ -85,7 +98,7 @@ def process_video_upload(
     summary metadata plus optional GPS coordinates.
     """
     with tempfile.TemporaryDirectory() as temp_dir:
-        video_path = Path(temp_dir) / file_name
+        video_path = Path(temp_dir) / _safe_upload_filename(file_name)
         video_path.write_bytes(file_bytes)
 
         capture = cv2.VideoCapture(str(video_path))

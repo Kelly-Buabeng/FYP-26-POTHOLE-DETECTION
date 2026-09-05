@@ -30,6 +30,15 @@ from app.schemas.detection import (
 from app.services.detector import detector
 
 
+# Bounds for the batch-sync ZIP so an oversized or maliciously-crafted
+# archive (a "zip bomb": a tiny compressed file that expands to gigabytes)
+# can't exhaust memory/CPU before inference even starts.
+MAX_ARCHIVE_BYTES = 150 * 1024 * 1024
+MAX_FRAME_BYTES = 20 * 1024 * 1024
+MAX_TOTAL_DECOMPRESSED_BYTES = 500 * 1024 * 1024
+MAX_FRAMES_PER_BATCH = 500
+
+
 @dataclass
 class DecodedBatchFrame:
     image: Image.Image
@@ -70,20 +79,39 @@ def _load_manifest_from_json(manifest_bytes: bytes) -> IngestionManifest:
 
 
 def _decode_zip_frames(zip_bytes: bytes, manifest: IngestionManifest) -> list[DecodedBatchFrame]:
+    if len(manifest.items) > MAX_FRAMES_PER_BATCH:
+        raise ValueError(f"Batch has {len(manifest.items)} frames, exceeding the limit of {MAX_FRAMES_PER_BATCH}.")
+
     decoded: list[DecodedBatchFrame] = []
+    total_decompressed_bytes = 0
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as bundle:
-        files_by_name = {Path(name).name: name for name in bundle.namelist() if not name.endswith("/")}
+        infos_by_name = {Path(info.filename).name: info for info in bundle.infolist() if not info.is_dir()}
         for item in manifest.items:
-            member_name = files_by_name.get(Path(item.filename).name)
-            if not member_name:
+            info = infos_by_name.get(Path(item.filename).name)
+            if not info:
                 continue
-            raw = bundle.read(member_name)
+
+            if info.file_size > MAX_FRAME_BYTES:
+                raise ValueError(
+                    f"Frame '{item.filename}' is {info.file_size} bytes uncompressed, "
+                    f"exceeding the per-frame limit of {MAX_FRAME_BYTES} bytes."
+                )
+            total_decompressed_bytes += info.file_size
+            if total_decompressed_bytes > MAX_TOTAL_DECOMPRESSED_BYTES:
+                raise ValueError(
+                    f"Batch exceeds the total decompressed size limit of {MAX_TOTAL_DECOMPRESSED_BYTES} bytes."
+                )
+
+            raw = bundle.read(info)
             image = Image.open(io.BytesIO(raw)).convert("RGB")
             decoded.append(DecodedBatchFrame(image=image, manifest_item=item))
     return decoded
 
 
 def decode_batch_payload(zip_bytes: bytes, manifest_bytes: bytes) -> list[DecodedBatchFrame]:
+    if len(zip_bytes) > MAX_ARCHIVE_BYTES:
+        raise ValueError(f"Archive is {len(zip_bytes)} bytes, exceeding the limit of {MAX_ARCHIVE_BYTES} bytes.")
+
     manifest = _load_manifest_from_json(manifest_bytes)
     return _decode_zip_frames(zip_bytes, manifest)
 
