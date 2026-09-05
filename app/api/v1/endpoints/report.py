@@ -3,13 +3,28 @@ import io
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
+from app.core.security import require_api_key
 from app.schemas.detection import ReportResponse, RegionReport, SeverityBreakdown
 from app.services.detection_repo import get_all_detections
 from app.services.geo import nearest_region, severity_bucket
 
 router = APIRouter()
+
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value: str) -> str:
+    """
+    Neutralize CSV/formula injection (CWE-1236): a leading =, +, -, @, tab or
+    CR makes Excel/Sheets interpret the cell as a formula when the exported
+    file is opened. Prefixing with a quote forces it to be read as text.
+    """
+    text = str(value)
+    if text.startswith(_FORMULA_PREFIXES):
+        return "'" + text
+    return text
 
 
 @router.get("/report", response_model=ReportResponse, summary="Detections grouped by severity and region for GHA")
@@ -54,7 +69,11 @@ async def report(
     )
 
 
-@router.get("/detections/export", summary="Export detections as CSV or GeoJSON for QGIS/ArcGIS")
+@router.get(
+    "/detections/export",
+    summary="Export detections as CSV or GeoJSON for QGIS/ArcGIS",
+    dependencies=[Depends(require_api_key)],
+)
 async def export_detections(
     format: str = Query(default="csv", pattern="^(csv|geojson)$", description="csv or geojson"),
     min_confidence: float = Query(default=0.0, ge=0.0, le=1.0),
@@ -99,7 +118,7 @@ async def export_detections(
     for row in rows:
         writer.writerow([
             row["id"],
-            row["device_id"],
+            _csv_safe(row["device_id"]),
             row["lat"],
             row["lng"],
             row["confidence"],

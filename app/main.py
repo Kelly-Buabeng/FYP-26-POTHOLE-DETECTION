@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router
+from app.core.config import get_settings
+from app.core.security import _PLACEHOLDER_KEYS
 from app.services.detector import detector
 
 
@@ -10,6 +12,13 @@ from app.services.detector import detector
 async def lifespan(app: FastAPI):
     print("[Startup] Loading YOLOv8 model...")
     detector.load()
+    if get_settings().api_key.strip() in _PLACEHOLDER_KEYS:
+        print(
+            "[Startup] WARNING: API_KEY is not configured (or is still the "
+            ".env.example placeholder) — /detect, /detections/export, and "
+            "DELETE /detections/{id} are unauthenticated. Set a real API_KEY "
+            "before deploying."
+        )
     print("[Startup] Ready.")
     yield
     print("[Shutdown] Done.")

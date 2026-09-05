@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     ghana_lng_min: float = -3.5
     ghana_lng_max: float = 1.5
 
+    # API authentication — required via X-API-Key on write/destructive/export
+    # routes. Empty (the default) disables the check, for local dev only.
+    api_key: str = ""
+
     # App
     app_env: str = "development"
     app_port: int = 8000

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+from app.core.security import require_api_key
 from app.schemas.detection import HeatmapPoint, StatsResponse
 from app.services.detection_repo import get_heatmap_points, get_stats, delete_detection
 from fastapi import HTTPException
@@ -25,7 +26,7 @@ async def stats():
     return await get_stats()
 
 
-@router.delete("/detections/{detection_id}", summary="Remove a false positive")
+@router.delete("/detections/{detection_id}", summary="Remove a false positive", dependencies=[Depends(require_api_key)])
 async def remove_detection(detection_id: str):
     deleted = await delete_detection(detection_id)
     if not deleted:

@@ -77,15 +77,20 @@ pytest tests/ -v
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/detect` | Run YOLOv8 on image + GPS coords |
-| GET | `/api/v1/heatmap` | Pothole GPS points for frontend map |
-| GET | `/api/v1/stats` | Dashboard summary |
-| GET | `/api/v1/report` | Detections grouped by severity and region, for GHA |
-| GET | `/api/v1/detections/export` | Download detections as CSV or GeoJSON (`?format=csv\|geojson`), for QGIS/ArcGIS |
-| DELETE | `/api/v1/detections/{id}` | Remove a false positive |
-| GET | `/health` | Health check |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/detect` | 🔒 `X-API-Key` | Run YOLOv8 on image + GPS coords |
+| GET | `/api/v1/heatmap` | public | Pothole GPS points for frontend map |
+| GET | `/api/v1/stats` | public | Dashboard summary |
+| GET | `/api/v1/report` | public | Detections grouped by severity and region, for GHA |
+| GET | `/api/v1/detections/export` | 🔒 `X-API-Key` | Download detections as CSV or GeoJSON (`?format=csv\|geojson`), for QGIS/ArcGIS |
+| DELETE | `/api/v1/detections/{id}` | 🔒 `X-API-Key` | Remove a false positive |
+| GET | `/health` | public | Health check |
+
+🔒 endpoints require an `X-API-Key` header matching `API_KEY` in `.env`. If
+`API_KEY` is unset (or left as the `.env.example` placeholder), the check is
+skipped — dev/test only; the server logs a startup warning in that case, and
+it must be set to a real value before deploying.
 
 ## ESP32-CAM Integration (Phase 1 — pending)
 The `/api/v1/detect` endpoint accepts `multipart/form-data` with:
@@ -93,3 +98,5 @@ The `/api/v1/detect` endpoint accepts `multipart/form-data` with:
 - `lat` — latitude from NEO-6M GPS
 - `lng` — longitude from NEO-6M GPS
 - `device_id` — ESP32-CAM unit identifier
+
+It also requires an `X-API-Key` header (see above) once `API_KEY` is configured.
