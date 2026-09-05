@@ -3,8 +3,9 @@ import io
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
+from app.core.dependencies import verify_api_key
 from app.schemas.detection import ReportResponse, RegionReport, SeverityBreakdown
 from app.services.detection_repo import get_all_detections
 from app.services.geo import nearest_region, severity_bucket
@@ -12,7 +13,12 @@ from app.services.geo import nearest_region, severity_bucket
 router = APIRouter()
 
 
-@router.get("/report", response_model=ReportResponse, summary="Detections grouped by severity and region for GHA")
+@router.get(
+    "/report",
+    response_model=ReportResponse,
+    summary="Detections grouped by severity and region for GHA",
+    dependencies=[Depends(verify_api_key)],
+)
 async def report(
     min_confidence: float = Query(default=0.4, ge=0.0, le=1.0),
     limit: int = Query(default=5000, le=20000),
@@ -54,7 +60,11 @@ async def report(
     )
 
 
-@router.get("/detections/export", summary="Export detections as CSV or GeoJSON for QGIS/ArcGIS")
+@router.get(
+    "/detections/export",
+    summary="Export detections as CSV or GeoJSON for QGIS/ArcGIS",
+    dependencies=[Depends(verify_api_key)],
+)
 async def export_detections(
     format: str = Query(default="csv", pattern="^(csv|geojson)$", description="csv or geojson"),
     min_confidence: float = Query(default=0.0, ge=0.0, le=1.0),
