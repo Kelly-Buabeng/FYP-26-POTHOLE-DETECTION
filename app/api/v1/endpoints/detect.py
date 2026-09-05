@@ -2,11 +2,12 @@ import io
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 
 from app.core.config import get_settings
+from app.core.security import require_api_key
 from app.schemas.detection import DetectionResponse
 from app.services.detector import detector
 from app.services.detection_repo import save_detection
@@ -14,7 +15,12 @@ from app.services.detection_repo import save_detection
 router = APIRouter()
 
 
-@router.post("/detect", response_model=DetectionResponse, summary="Run pothole detection on an image")
+@router.post(
+    "/detect",
+    response_model=DetectionResponse,
+    summary="Run pothole detection on an image",
+    dependencies=[Depends(require_api_key)],
+)
 async def detect(
     image: UploadFile = File(..., description="Road image (JPEG/PNG)"),
     lat: float = Form(..., description="Latitude"),

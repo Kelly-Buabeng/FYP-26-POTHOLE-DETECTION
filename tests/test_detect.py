@@ -280,3 +280,86 @@ def test_export_geojson_is_valid_feature_collection(client):
 def test_export_rejects_invalid_format(client):
     r = client.get("/api/v1/detections/export?format=shapefile")
     assert r.status_code == 422
+
+
+def test_csv_safe_neutralizes_formula_injection():
+    from app.api.v1.endpoints.report import _csv_safe
+
+    assert _csv_safe("=cmd|' /C calc'!A1") == "'=cmd|' /C calc'!A1"
+    assert _csv_safe("+1+1") == "'+1+1"
+    assert _csv_safe("-1") == "'-1"
+    assert _csv_safe("@SUM(A1)") == "'@SUM(A1)"
+    assert _csv_safe("esp32-01") == "esp32-01"
+
+
+@pytest.mark.asyncio
+async def test_require_api_key_allows_when_unconfigured():
+    from app.core.security import require_api_key
+
+    await require_api_key(x_api_key=None)  # no configured key -> no-op
+
+
+@pytest.mark.asyncio
+async def test_require_api_key_allows_placeholder_as_unconfigured(monkeypatch):
+    from app.core import security as security_module
+    from app.core.config import Settings
+
+    monkeypatch.setattr(security_module, "get_settings", lambda: Settings(api_key="change-this-in-production"))
+    await security_module.require_api_key(x_api_key=None)
+
+
+@pytest.mark.asyncio
+async def test_require_api_key_rejects_missing_or_wrong_key(monkeypatch):
+    from fastapi import HTTPException
+    from app.core import security as security_module
+    from app.core.config import Settings
+
+    monkeypatch.setattr(security_module, "get_settings", lambda: Settings(api_key="secret123"))
+
+    with pytest.raises(HTTPException) as exc:
+        await security_module.require_api_key(x_api_key=None)
+    assert exc.value.status_code == 401
+
+    with pytest.raises(HTTPException):
+        await security_module.require_api_key(x_api_key="wrong")
+
+    await security_module.require_api_key(x_api_key="secret123")  # should not raise
+
+
+def test_protected_endpoints_reject_missing_or_wrong_key_when_configured(client, monkeypatch):
+    from app.core.config import Settings
+
+    monkeypatch.setattr("app.core.security.get_settings", lambda: Settings(api_key="secret123"))
+
+    r = client.delete("/api/v1/detections/does-not-exist")
+    assert r.status_code == 401
+
+    r = client.get("/api/v1/detections/export")
+    assert r.status_code == 401
+
+    r = client.post(
+        "/api/v1/detect",
+        data={"lat": "5.6037", "lng": "-0.1870"},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 401
+
+    r = client.get("/api/v1/detections/export", headers={"X-API-Key": "wrong"})
+    assert r.status_code == 401
+
+
+def test_protected_endpoints_accept_correct_key_when_configured(client, monkeypatch):
+    from app.core.config import Settings
+
+    monkeypatch.setattr("app.core.security.get_settings", lambda: Settings(api_key="secret123"))
+
+    r = client.get("/api/v1/detections/export", headers={"X-API-Key": "secret123"})
+    assert r.status_code == 200
+
+    r = client.post(
+        "/api/v1/detect",
+        data={"lat": "5.6037", "lng": "-0.1870"},
+        files={"image": ("road.jpg", _make_image_bytes(), "image/jpeg")},
+        headers={"X-API-Key": "secret123"},
+    )
+    assert r.status_code == 200
