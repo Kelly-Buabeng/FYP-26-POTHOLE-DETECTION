@@ -100,6 +100,23 @@ Set `APP_ENV=production` on your deployed host to enforce both of the above:
 the server refuses to start if `API_KEY` is unconfigured or `CORS_ORIGINS`
 still includes `*`.
 
+## Deployment
+
+Config for two hosts is included — pick one:
+
+- **Railway** — `railway.json` + `Procfile` (nixpacks build).
+- **Render** — `render.yaml` (Blueprint). Create a new Blueprint from this repo
+  in the Render dashboard; it reads `render.yaml` automatically. Render's free
+  plan spins the service down after inactivity, so the first request after
+  idle will be slow (model reload).
+
+Either way, set `API_KEY`, `CORS_ORIGINS` (your deployed frontend's origin),
+`SUPABASE_URL`, and `SUPABASE_SERVICE_KEY` as environment variables on the
+host — they're marked `sync: false` in `render.yaml` so Render prompts for
+them rather than storing them in the repo. With `APP_ENV=production` set, the
+app refuses to start if `API_KEY` is missing or `CORS_ORIGINS` is still `*`
+(see above).
+
 ## ESP32-CAM Integration (Phase 1 — pending)
 The `/api/v1/detect` endpoint accepts `multipart/form-data` with:
 - `image` — JPEG frame
