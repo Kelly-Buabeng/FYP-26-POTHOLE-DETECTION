@@ -363,3 +363,42 @@ def test_protected_endpoints_accept_correct_key_when_configured(client, monkeypa
         headers={"X-API-Key": "secret123"},
     )
     assert r.status_code == 200
+
+
+def test_cors_origin_list_splits_and_trims():
+    from app.core.config import Settings
+
+    settings = Settings(cors_origins=" https://a.example.com, https://b.example.com ,")
+    assert settings.cors_origin_list == ["https://a.example.com", "https://b.example.com"]
+
+
+def test_startup_refuses_unconfigured_api_key_in_production():
+    with patch("app.services.detector.detector") as mock_detector:
+        mock_detector.load = MagicMock()
+        from app.main import app
+
+        with patch("app.main.get_settings") as mock_settings:
+            mock_settings.return_value = MagicMock(
+                app_env="production",
+                api_key="",
+                cors_origin_list=["https://frontend.example.com"],
+            )
+            with pytest.raises(RuntimeError, match="API_KEY"):
+                with TestClient(app):
+                    pass
+
+
+def test_startup_refuses_wildcard_cors_in_production():
+    with patch("app.services.detector.detector") as mock_detector:
+        mock_detector.load = MagicMock()
+        from app.main import app
+
+        with patch("app.main.get_settings") as mock_settings:
+            mock_settings.return_value = MagicMock(
+                app_env="production",
+                api_key="secret123",
+                cors_origin_list=["*"],
+            )
+            with pytest.raises(RuntimeError, match="CORS_ORIGINS"):
+                with TestClient(app):
+                    pass

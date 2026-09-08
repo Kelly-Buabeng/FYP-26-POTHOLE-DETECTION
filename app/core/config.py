@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # routes. Empty (the default) disables the check, for local dev only.
     api_key: str = ""
 
+    # Comma-separated list of origins allowed to call this API via CORS.
+    # Defaults cover common local dev servers only — set explicitly for
+    # any deployed frontend origin.
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
     # App
     app_env: str = "development"
     app_port: int = 8000
@@ -33,6 +38,10 @@ class Settings(BaseSettings):
         extra="ignore",
         protected_namespaces=(),
     )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache

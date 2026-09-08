@@ -12,13 +12,28 @@ from app.services.detector import detector
 async def lifespan(app: FastAPI):
     print("[Startup] Loading YOLOv8 model...")
     detector.load()
-    if get_settings().api_key.strip() in _PLACEHOLDER_KEYS:
-        print(
-            "[Startup] WARNING: API_KEY is not configured (or is still the "
-            ".env.example placeholder) — /detect, /detections/export, and "
-            "DELETE /detections/{id} are unauthenticated. Set a real API_KEY "
-            "before deploying."
+
+    settings = get_settings()
+    is_production = settings.app_env.strip().lower() == "production"
+    api_key_unconfigured = settings.api_key.strip() in _PLACEHOLDER_KEYS
+    cors_wide_open = "*" in settings.cors_origin_list
+
+    if api_key_unconfigured:
+        message = (
+            "API_KEY is not configured (or is still the .env.example "
+            "placeholder) — /detect, /detections/export, and DELETE "
+            "/detections/{id} are unauthenticated."
         )
+        if is_production:
+            raise RuntimeError(f"[Startup] {message} Refusing to start in production.")
+        print(f"[Startup] WARNING: {message} Set a real API_KEY before deploying.")
+
+    if cors_wide_open and is_production:
+        raise RuntimeError(
+            "[Startup] CORS_ORIGINS includes '*' — refusing to start in production. "
+            "Set CORS_ORIGINS to the deployed frontend's exact origin(s)."
+        )
+
     print("[Startup] Ready.")
     yield
     print("[Shutdown] Done.")
@@ -33,7 +48,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_settings().cors_origin_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )

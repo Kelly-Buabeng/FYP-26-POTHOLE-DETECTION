@@ -92,6 +92,14 @@ pytest tests/ -v
 skipped — dev/test only; the server logs a startup warning in that case, and
 it must be set to a real value before deploying.
 
+CORS is restricted to the origins listed in `CORS_ORIGINS` (comma-separated,
+defaults to local dev servers only) — set it to your deployed frontend's
+exact origin, e.g. `https://your-frontend.vercel.app`.
+
+Set `APP_ENV=production` on your deployed host to enforce both of the above:
+the server refuses to start if `API_KEY` is unconfigured or `CORS_ORIGINS`
+still includes `*`.
+
 ## ESP32-CAM Integration (Phase 1 — pending)
 The `/api/v1/detect` endpoint accepts `multipart/form-data` with:
 - `image` — JPEG frame
