@@ -86,7 +86,7 @@ def train():
     )
 
     best = Path(f"runs/detect/{RUN_NAME}/weights/best.pt")
-    print(f"\n✅ Training complete.")
+    print(f"\n Training complete.")
     print(f"   Best weights : {best.resolve()}")
     print(f"   mAP50        : {results.results_dict.get('metrics/mAP50(B)', 'N/A')}")
     print(f"\nNext steps:")
