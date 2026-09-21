@@ -1,2 +1,9 @@
 [phases.setup]
 aptPkgs = ["libgl1", "libglib2.0-0"]
+
+[phases.install]
+cmds = [
+  "...",
+  ". /opt/venv/bin/activate && pip uninstall -y opencv-python opencv-python-headless || true",
+  ". /opt/venv/bin/activate && pip install --no-cache-dir opencv-python-headless==4.10.0.84"
+]
