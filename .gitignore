@@ -9,7 +9,7 @@ __pycache__/
 venv/
 
 # Model weights (too large for git — use Git LFS or store separately)
-ml/weights/*.pt
+# ml/weights/*.pt
 
 # Training runs
 runs/
