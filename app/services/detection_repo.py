@@ -93,10 +93,13 @@ async def get_heatmap_points(
 
 async def get_stats() -> StatsResponse:
     if not _is_configured():
+        mock_rows = _mock_detections(0.0, 5000)
+        confs = [r["confidence"] for r in mock_rows]
+        devices = set(r["device_id"] for r in mock_rows)
         return StatsResponse(
-            total_detections=0,
-            avg_confidence=0.0,
-            devices_active=0,
+            total_detections=len(mock_rows),
+            avg_confidence=round(sum(confs) / len(confs), 4) if confs else 0.0,
+            devices_active=len(devices),
             mock_mode=True,
         )
 
