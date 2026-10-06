@@ -1,7 +1,6 @@
 from functools import lru_cache
 
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -26,13 +25,14 @@ class Settings(BaseSettings):
     # Comma-separated list of origins allowed to call this API via CORS.
     # Defaults cover common local dev servers only — set explicitly for
     # any deployed frontend origin.
-    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    cors_origins: str = "http://localhost:3000,https://fyp26-fronted.vercel.app"
 
     # App
     app_env: str = "development"
     app_port: int = 8000
 
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
+
         env_file=".env",
         case_sensitive=False,
         extra="ignore",
