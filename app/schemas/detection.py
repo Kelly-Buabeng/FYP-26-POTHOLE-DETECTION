@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -30,12 +30,30 @@ class DetectionResponse(BaseModel):
     coordinates: dict
     device_id: str
     timestamp: str
+    image_url: Optional[str] = None
+    status: Optional[str] = "pending"
+
+
+class SubmitResponse(BaseModel):
+    id: str
+    message: str
+    status: str = "pending"
+    device_id: str
+    coordinates: dict
+    image_url: str
+    timestamp: str
+
+
+class StatusUpdateRequest(BaseModel):
+    status: str = Field(..., description="Status: pending, confirmed, declined, or fixed")
 
 
 class HeatmapPoint(BaseModel):
+    id: Optional[str] = None
     lat: float
     lng: float
     intensity: float = Field(ge=0.0, le=1.0)
+    image_url: Optional[str] = None
 
 
 class StatsResponse(BaseModel):
