@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # ML model
     model_path: str = "yolov8n.pt"
-    confidence_threshold: float = 0.35
+    confidence_threshold: float = 0.02
 
     # Ghana bounding box — /detect rejects coordinates outside this box
     ghana_lat_min: float = 4.5

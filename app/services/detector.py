@@ -120,6 +120,8 @@ class PotholeDetector:
         results = self._model.predict(
             source=image,
             conf=settings.confidence_threshold,
+            imgsz=1024,
+            augment=True,
             verbose=False,
         )
 

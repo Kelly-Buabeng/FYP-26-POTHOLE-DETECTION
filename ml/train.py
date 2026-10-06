@@ -19,7 +19,7 @@ os.environ.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
 from ultralytics import YOLO
 
 DATASET_YAML = Path("dataset/data.yaml")
-EPOCHS = 50
+EPOCHS = 60
 IMG_SIZE = 640 
 BATCH = 8           # Reduce to 4 if you run out of VRAM
 RUN_NAME = "pothole_v1"
@@ -59,11 +59,11 @@ def train():
 
     data_yaml = fix_data_yaml()
 
-    print(f"[Train] Starting fine-tune: YOLOv8n → {RUN_NAME}")
+    print(f"[Train] Starting fine-tune: YOLOv8s (Small) → {RUN_NAME}")
     print(f"[Train] Dataset: {data_yaml}")
     print(f"[Train] Epochs: {EPOCHS}, Image size: {IMG_SIZE}, Batch: {BATCH}")
 
-    model = YOLO("yolov8n.pt")
+    model = YOLO("yolov8s.pt")
 
     results = model.train(
         data=data_yaml,
@@ -74,13 +74,16 @@ def train():
         project="runs/detect",
         name=RUN_NAME,
         exist_ok=True,
-        # Augmentations suited for road/daylight conditions
+        # Enhanced augmentations for road, daylight & reflection conditions
         hsv_h=0.015,
-        hsv_s=0.5,
-        hsv_v=0.4,
+        hsv_s=0.7,      # Saturation jitter for wet road reflections
+        hsv_v=0.4,      # Value/brightness jitter for shadows & glare
+        degrees=10.0,   # Camera tilt variation
+        perspective=0.0005, # Perspective angle jitter
         flipud=0.0,     # Roads don't flip upside-down
         fliplr=0.5,
         mosaic=1.0,
+        mixup=0.15,     # Blends complex road textures
         translate=0.1,
         scale=0.4,
     )

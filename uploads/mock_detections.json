@@ -306,5 +306,520 @@
     "status": "confirmed",
     "image_url": "/api/v1/images/481f3064-c186-4731-8f0c-b16cbd8a2fb4",
     "created_at": "2026-10-06T18:22:59.717945+00:00"
+  },
+  "27662f1b-7f40-4a4b-86ba-e77b6b6d43c4": {
+    "id": "27662f1b-7f40-4a4b-86ba-e77b6b6d43c4",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.5412,
+    "lng": -0.2541,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/27662f1b-7f40-4a4b-86ba-e77b6b6d43c4",
+    "created_at": "2026-10-06T20:43:14.850641+00:00"
+  },
+  "c8751c1a-429a-4b01-b3ee-d986b2b3feb1": {
+    "id": "c8751c1a-429a-4b01-b3ee-d986b2b3feb1",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.5412,
+    "lng": -0.2541,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/c8751c1a-429a-4b01-b3ee-d986b2b3feb1",
+    "created_at": "2026-10-06T20:44:38.354663+00:00"
+  },
+  "c2c4e0b0-6f8a-426b-8aac-3efd1e457118": {
+    "id": "c2c4e0b0-6f8a-426b-8aac-3efd1e457118",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.5412,
+    "lng": -0.2541,
+    "confidence": 0.6861,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.6861,
+        "bbox": {
+          "x1": 572.05,
+          "y1": 376.93,
+          "x2": 792.67,
+          "y2": 444.69
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.5574,
+        "bbox": {
+          "x1": 256.96,
+          "y1": 351.22,
+          "x2": 370.34,
+          "y2": 400.65
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.4509,
+        "bbox": {
+          "x1": 203.68,
+          "y1": 431.98,
+          "x2": 525.24,
+          "y2": 499.0
+        }
+      }
+    ],
+    "status": "confirmed",
+    "image_url": "/api/v1/images/c2c4e0b0-6f8a-426b-8aac-3efd1e457118",
+    "created_at": "2026-10-06T20:45:19.014504+00:00"
+  },
+  "5a4949fc-49f8-4506-8a9b-cce664c3556c": {
+    "id": "5a4949fc-49f8-4506-8a9b-cce664c3556c",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.5412,
+    "lng": -0.2541,
+    "confidence": 0.9132,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.9132,
+        "bbox": {
+          "x1": 414.94,
+          "y1": 270.45,
+          "x2": 533.55,
+          "y2": 346.68
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.839,
+        "bbox": {
+          "x1": 16.89,
+          "y1": 196.36,
+          "x2": 102.91,
+          "y2": 220.8
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.6783,
+        "bbox": {
+          "x1": 5.92,
+          "y1": 232.41,
+          "x2": 90.45,
+          "y2": 251.06
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.4354,
+        "bbox": {
+          "x1": 1.03,
+          "y1": 231.71,
+          "x2": 108.91,
+          "y2": 253.93
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.4214,
+        "bbox": {
+          "x1": 426.22,
+          "y1": 176.09,
+          "x2": 687.99,
+          "y2": 273.04
+        }
+      }
+    ],
+    "status": "confirmed",
+    "image_url": "/api/v1/images/5a4949fc-49f8-4506-8a9b-cce664c3556c",
+    "created_at": "2026-10-06T20:45:55.874385+00:00"
+  },
+  "b1cea370-d414-4e02-a25e-87533c76d7ba": {
+    "id": "b1cea370-d414-4e02-a25e-87533c76d7ba",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.5412,
+    "lng": -0.2541,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/b1cea370-d414-4e02-a25e-87533c76d7ba",
+    "created_at": "2026-10-06T20:46:48.023559+00:00"
+  },
+  "d99c8f65-6432-4944-a419-b0fc11a9653a": {
+    "id": "d99c8f65-6432-4944-a419-b0fc11a9653a",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.5412,
+    "lng": -0.2541,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "declined",
+    "image_url": "/api/v1/images/d99c8f65-6432-4944-a419-b0fc11a9653a",
+    "created_at": "2026-10-06T20:47:29.573851+00:00"
+  },
+  "c29df104-641f-43a4-96ca-1d2d8f04ce31": {
+    "id": "c29df104-641f-43a4-96ca-1d2d8f04ce31",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.592,
+    "lng": -0.2105,
+    "confidence": 0.1944,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.1944,
+        "bbox": {
+          "x1": 34.25,
+          "y1": 92.92,
+          "x2": 256.03,
+          "y2": 145.28
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.0703,
+        "bbox": {
+          "x1": 239.87,
+          "y1": 398.52,
+          "x2": 517.63,
+          "y2": 1273.65
+        }
+      }
+    ],
+    "status": "confirmed",
+    "image_url": "/api/v1/images/c29df104-641f-43a4-96ca-1d2d8f04ce31",
+    "created_at": "2026-10-06T20:48:20.534529+00:00"
+  },
+  "a46af4ca-d5fa-444a-8865-4315be722d9e": {
+    "id": "a46af4ca-d5fa-444a-8865-4315be722d9e",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.73323,
+    "lng": -0.179595,
+    "confidence": 0.1946,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.1946,
+        "bbox": {
+          "x1": 34.24,
+          "y1": 92.92,
+          "x2": 256.06,
+          "y2": 145.29
+        }
+      }
+    ],
+    "status": "confirmed",
+    "image_url": "/api/v1/images/a46af4ca-d5fa-444a-8865-4315be722d9e",
+    "created_at": "2026-10-06T20:49:02.528425+00:00"
+  },
+  "d423d6f4-b702-4826-ae1e-f713abfb1c8a": {
+    "id": "d423d6f4-b702-4826-ae1e-f713abfb1c8a",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.560975,
+    "lng": -0.262068,
+    "confidence": 0.1944,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.1944,
+        "bbox": {
+          "x1": 34.25,
+          "y1": 92.92,
+          "x2": 256.03,
+          "y2": 145.28
+        }
+      }
+    ],
+    "status": "pending",
+    "image_url": "/api/v1/images/d423d6f4-b702-4826-ae1e-f713abfb1c8a",
+    "created_at": "2026-10-06T20:52:00.357395+00:00"
+  },
+  "b1ab94ba-9f1d-4017-8fa1-472c7d12d184": {
+    "id": "b1ab94ba-9f1d-4017-8fa1-472c7d12d184",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.560975,
+    "lng": -0.262068,
+    "confidence": 0.1944,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.1944,
+        "bbox": {
+          "x1": 34.25,
+          "y1": 92.92,
+          "x2": 256.03,
+          "y2": 145.28
+        }
+      }
+    ],
+    "status": "pending",
+    "image_url": "/api/v1/images/b1ab94ba-9f1d-4017-8fa1-472c7d12d184",
+    "created_at": "2026-10-06T20:52:42.833612+00:00"
+  },
+  "723c0ddb-4e9d-46bb-a23e-18f439069090": {
+    "id": "723c0ddb-4e9d-46bb-a23e-18f439069090",
+    "device_id": "Google Chrome (Windows PC) - #3331",
+    "lat": 5.733158,
+    "lng": -0.179545,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/723c0ddb-4e9d-46bb-a23e-18f439069090",
+    "created_at": "2026-10-06T20:53:52.441284+00:00"
+  },
+  "e0d001ca-d2ac-41f7-8a05-602efd7af7f0": {
+    "id": "e0d001ca-d2ac-41f7-8a05-602efd7af7f0",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.560975,
+    "lng": -0.262068,
+    "confidence": 0.1944,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.1944,
+        "bbox": {
+          "x1": 34.25,
+          "y1": 92.92,
+          "x2": 256.03,
+          "y2": 145.28
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.0703,
+        "bbox": {
+          "x1": 239.87,
+          "y1": 398.52,
+          "x2": 517.63,
+          "y2": 1273.65
+        }
+      }
+    ],
+    "status": "pending",
+    "image_url": "/api/v1/images/e0d001ca-d2ac-41f7-8a05-602efd7af7f0",
+    "created_at": "2026-10-06T20:55:18.789756+00:00"
+  },
+  "36dc82a6-c1b4-45eb-9928-503a7cfe2473": {
+    "id": "36dc82a6-c1b4-45eb-9928-503a7cfe2473",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.560975,
+    "lng": -0.262068,
+    "confidence": 0.9349,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.9349,
+        "bbox": {
+          "x1": 171.13,
+          "y1": 215.7,
+          "x2": 234.67,
+          "y2": 259.27
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.9201,
+        "bbox": {
+          "x1": 80.38,
+          "y1": 286.25,
+          "x2": 186.05,
+          "y2": 338.77
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.8487,
+        "bbox": {
+          "x1": 325.66,
+          "y1": 94.14,
+          "x2": 380.51,
+          "y2": 118.45
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.3669,
+        "bbox": {
+          "x1": 89.49,
+          "y1": 189.81,
+          "x2": 148.26,
+          "y2": 215.73
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.1297,
+        "bbox": {
+          "x1": 145.54,
+          "y1": 66.46,
+          "x2": 172.29,
+          "y2": 75.31
+        }
+      }
+    ],
+    "status": "confirmed",
+    "image_url": "/api/v1/images/36dc82a6-c1b4-45eb-9928-503a7cfe2473",
+    "created_at": "2026-10-06T20:56:45.884401+00:00"
+  },
+  "5b28c94f-4ed5-4e61-a51c-60db1a2f7c2f": {
+    "id": "5b28c94f-4ed5-4e61-a51c-60db1a2f7c2f",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.561,
+    "lng": -0.2619,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/5b28c94f-4ed5-4e61-a51c-60db1a2f7c2f",
+    "created_at": "2026-10-06T20:58:06.189609+00:00"
+  },
+  "aad4833f-809f-4001-b426-2a1b6cbfd11d": {
+    "id": "aad4833f-809f-4001-b426-2a1b6cbfd11d",
+    "device_id": "manual",
+    "lat": 5.0,
+    "lng": 1.0,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/aad4833f-809f-4001-b426-2a1b6cbfd11d",
+    "created_at": "2026-10-06T21:01:45.727699+00:00"
+  },
+  "3d2aaae5-ad29-4281-aa5b-37330eba867f": {
+    "id": "3d2aaae5-ad29-4281-aa5b-37330eba867f",
+    "device_id": "manual",
+    "lat": 5.0,
+    "lng": 1.0,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/3d2aaae5-ad29-4281-aa5b-37330eba867f",
+    "created_at": "2026-10-06T21:02:16.197979+00:00"
+  },
+  "af79c069-4fea-4dc8-abca-883eb8a83d7c": {
+    "id": "af79c069-4fea-4dc8-abca-883eb8a83d7c",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.6089,
+    "lng": -0.169,
+    "confidence": 0.1867,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.1867,
+        "bbox": {
+          "x1": 717.17,
+          "y1": 388.26,
+          "x2": 934.35,
+          "y2": 538.61
+        }
+      },
+      {
+        "label": "Pothole",
+        "confidence": 0.1538,
+        "bbox": {
+          "x1": 256.84,
+          "y1": 126.01,
+          "x2": 630.61,
+          "y2": 541.0
+        }
+      }
+    ],
+    "status": "pending",
+    "image_url": "/api/v1/images/af79c069-4fea-4dc8-abca-883eb8a83d7c",
+    "created_at": "2026-10-06T21:07:12.804801+00:00"
+  },
+  "9a0421d9-481e-4245-be51-e33f7a26fb2d": {
+    "id": "9a0421d9-481e-4245-be51-e33f7a26fb2d",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.6089,
+    "lng": -0.169,
+    "confidence": 0.5971,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.5971,
+        "bbox": {
+          "x1": 0.0,
+          "y1": 138.16,
+          "x2": 275.23,
+          "y2": 215.99
+        }
+      }
+    ],
+    "status": "confirmed",
+    "image_url": "/api/v1/images/9a0421d9-481e-4245-be51-e33f7a26fb2d",
+    "created_at": "2026-10-06T21:07:51.293669+00:00"
+  },
+  "b1a675df-16e7-4eab-9ffb-25c829972b90": {
+    "id": "b1a675df-16e7-4eab-9ffb-25c829972b90",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.54,
+    "lng": -0.34,
+    "confidence": 0.2661,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.2661,
+        "bbox": {
+          "x1": 597.02,
+          "y1": 269.61,
+          "x2": 892.69,
+          "y2": 371.68
+        }
+      }
+    ],
+    "status": "pending",
+    "image_url": "/api/v1/images/b1a675df-16e7-4eab-9ffb-25c829972b90",
+    "created_at": "2026-10-06T21:08:28.889052+00:00"
+  },
+  "3e483039-4546-4ef8-90da-c3e69cfcd486": {
+    "id": "3e483039-4546-4ef8-90da-c3e69cfcd486",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.54,
+    "lng": -0.34,
+    "confidence": 0.0284,
+    "detections": [
+      {
+        "label": "Pothole",
+        "confidence": 0.0284,
+        "bbox": {
+          "x1": 0.0,
+          "y1": 52.31,
+          "x2": 46.11,
+          "y2": 104.75
+        }
+      }
+    ],
+    "status": "pending",
+    "image_url": "/api/v1/images/3e483039-4546-4ef8-90da-c3e69cfcd486",
+    "created_at": "2026-10-06T21:11:56.752269+00:00"
+  },
+  "9effc4a3-e082-4260-82ba-2555244561d4": {
+    "id": "9effc4a3-e082-4260-82ba-2555244561d4",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.54,
+    "lng": -0.34,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/9effc4a3-e082-4260-82ba-2555244561d4",
+    "created_at": "2026-10-06T21:14:06.876720+00:00"
+  },
+  "0e1ddbb6-872b-4c7c-8f26-6a37d978597a": {
+    "id": "0e1ddbb6-872b-4c7c-8f26-6a37d978597a",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.54,
+    "lng": -0.34,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/0e1ddbb6-872b-4c7c-8f26-6a37d978597a",
+    "created_at": "2026-10-06T21:15:45.902308+00:00"
+  },
+  "bc3a4663-40b4-4e8b-9b68-edd461fa68b7": {
+    "id": "bc3a4663-40b4-4e8b-9b68-edd461fa68b7",
+    "device_id": "MS Edge (Windows PC) - #1564",
+    "lat": 5.54,
+    "lng": -0.34,
+    "confidence": 0.0,
+    "detections": [],
+    "status": "pending",
+    "image_url": "/api/v1/images/bc3a4663-40b4-4e8b-9b68-edd461fa68b7",
+    "created_at": "2026-10-06T21:16:19.154149+00:00"
   }
 }
