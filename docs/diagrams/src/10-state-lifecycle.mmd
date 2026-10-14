@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> pending: POST /submit (confidence 0, no boxes)
+    [*] --> confirmed: POST /detect, max pothole conf >= 0.4
+    [*] --> pending: POST /detect, no pothole >= 0.4
+    pending --> confirmed: POST /analyze finds pothole >= 0.4
+    pending --> pending: POST /analyze finds nothing
+    pending --> confirmed: PATCH status
+    pending --> declined: PATCH status (false positive)
+    confirmed --> fixed: PATCH status (road repaired)
+    confirmed --> declined: PATCH status
+    declined --> confirmed: PATCH status (re-opened)
+    fixed --> confirmed: PATCH status (re-opened)
+    pending --> [*]: DELETE (API key)
+    confirmed --> [*]: DELETE
+    declined --> [*]: DELETE
+    fixed --> [*]: DELETE

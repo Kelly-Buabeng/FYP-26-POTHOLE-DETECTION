@@ -1,0 +1,48 @@
+sequenceDiagram
+    autonumber
+    actor F as Frontend Map / Dashboard
+    actor G as GHA Analyst
+    participant API as FastAPI
+    participant SEC as require_api_key
+    participant REPO as detection_repo
+    participant GEO as geo.py
+    participant FS as _MOCK_STORE
+
+    F->>API: GET /api/v1/heatmap?limit=500&min_confidence=0.4
+    API->>REPO: get_heatmap_points()
+    REPO->>FS: filter confidence >= 0.4, newest first, limit
+    REPO-->>API: HeatmapPoint list (id, lat, lng, intensity = confidence, image_url)
+    API-->>F: 200 JSON
+
+    F->>API: GET /api/v1/stats
+    API->>REPO: get_stats()
+    REPO->>FS: all rows (limit 5000)
+    REPO->>REPO: total, avg of non-zero confidences, distinct device_id count, mock_mode
+    API-->>F: 200 StatsResponse
+
+    G->>API: GET /api/v1/report?min_confidence=0.4
+    API->>REPO: get_all_detections(min_conf, limit)
+    REPO-->>API: rows
+    loop each row
+        API->>GEO: nearest_region(lat, lng)
+        GEO->>GEO: haversine to 16 regional capitals, pick min
+        GEO-->>API: region
+        API->>GEO: severity_bucket(confidence)
+        GEO-->>API: high (>=0.75) / medium (>=0.5) / low
+        API->>API: accumulate per-region counts and confidences
+    end
+    API->>API: build RegionReport list sorted by total DESC
+    API-->>G: 200 ReportResponse
+
+    G->>API: GET /api/v1/detections/export?format=geojson + X-API-Key
+    API->>SEC: verify key
+    API->>REPO: get_all_detections()
+    loop each row
+        API->>GEO: severity_bucket + nearest_region
+    end
+    alt format = geojson
+        API-->>G: FeatureCollection of Points (attachment detections.geojson)
+    else format = csv
+        API->>API: _csv_safe(device_id) prevents formula injection
+        API-->>G: text/csv (attachment detections.csv)
+    end

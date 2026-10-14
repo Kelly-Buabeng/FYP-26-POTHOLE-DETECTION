@@ -1,0 +1,77 @@
+flowchart LR
+    %% ===== Actors =====
+    subgraph PA[" "]
+    direction TB
+    ESP["👤 ESP32-CAM Field Unit<br/>(IoT device + NEO-6M GPS)"]
+    CIT["👤 Citizen Reporter<br/>(web / mobile browser)"]
+    ADM["👤 Road Administrator<br/>(dashboard operator)"]
+    GHA["👤 GHA Analyst<br/>(QGIS / ArcGIS user)"]
+    MLE["👤 ML Engineer"]
+    end
+    subgraph SA[" "]
+    direction TB
+    YOLO["⚙️ YOLOv8 Model<br/>(secondary actor)"]
+    SUPA["⚙️ Supabase / PostGIS<br/>(secondary actor)"]
+    end
+
+    subgraph SYS["FYP-26 Pothole Detection API (FastAPI)"]
+        direction TB
+        UC1(["UC1 Detect pothole in image<br/>POST /detect"])
+        UC2(["UC2 Submit pothole report<br/>POST /submit"])
+        UC3(["UC3 Analyze submitted report<br/>POST /detections/{id}/analyze"])
+        UC4(["UC4 Validate GPS within Ghana"])
+        UC5(["UC5 Validate image type/size"])
+        UC6(["UC6 Authenticate with X-API-Key"])
+        UC7(["UC7 View heatmap<br/>GET /heatmap"])
+        UC8(["UC8 View dashboard stats<br/>GET /stats"])
+        UC9(["UC9 List / view detections<br/>GET /detections, /detections/{id}"])
+        UC10(["UC10 View pothole image<br/>GET /images/{id}"])
+        UC11(["UC11 Update verification status<br/>PATCH /detections/{id}/status"])
+        UC12(["UC12 Delete false positive<br/>DELETE /detections/{id}"])
+        UC13(["UC13 Generate regional severity report<br/>GET /report"])
+        UC14(["UC14 Export CSV / GeoJSON<br/>GET /detections/export"])
+        UC15(["UC15 Check system health<br/>GET /health"])
+        UC16(["UC16 Train / replace model weights<br/>ml/train.py"])
+        UC17(["UC17 Classify region & severity"])
+    end
+
+    ESP --> UC1
+    CIT --> UC2
+    CIT --> UC7
+    CIT --> UC10
+    ADM --> UC3
+    ADM --> UC7
+    ADM --> UC8
+    ADM --> UC9
+    ADM --> UC10
+    ADM --> UC11
+    ADM --> UC12
+    ADM --> UC15
+    GHA --> UC13
+    GHA --> UC14
+    MLE --> UC16
+    MLE --> UC15
+
+    UC1 -. include .-> UC4
+    UC1 -. include .-> UC5
+    UC1 -. include .-> UC6
+    UC2 -. include .-> UC4
+    UC2 -. include .-> UC5
+    UC12 -. include .-> UC6
+    UC14 -. include .-> UC6
+    UC13 -. include .-> UC17
+    UC14 -. include .-> UC17
+    UC3 -. extend .-> UC2
+
+    UC1 --- YOLO
+    UC3 --- YOLO
+    UC9 --- SUPA
+
+    classDef actor fill:#e8f0fe,stroke:#1a56db,color:#111
+    classDef sec fill:#f3f4f6,stroke:#6b7280,color:#111,stroke-dasharray:4 3
+    classDef uc fill:#fff,stroke:#374151,color:#111
+    class ESP,CIT,ADM,GHA,MLE actor
+    class YOLO,SUPA sec
+    style PA fill:none,stroke:none
+    style SA fill:none,stroke:none
+    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC8,UC9,UC10,UC11,UC12,UC13,UC14,UC15,UC16,UC17 uc

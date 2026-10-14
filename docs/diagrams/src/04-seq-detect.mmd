@@ -1,0 +1,55 @@
+sequenceDiagram
+    autonumber
+    actor E as ESP32-CAM / Client
+    participant API as FastAPI /api/v1/detect
+    participant SEC as require_api_key
+    participant DET as PotholeDetector
+    participant REPO as detection_repo
+    participant FS as uploads/ (JSON + JPG)
+    participant DB as Supabase detections
+
+    E->>API: POST multipart (image, lat, lng, device_id) + X-API-Key
+    API->>SEC: check header
+    alt key configured and header missing / wrong
+        SEC-->>E: 401 Missing or invalid X-API-Key
+    end
+    API->>API: lat in [4.5, 11.5] and lng in [-3.5, 1.5] ?
+    alt outside Ghana bounding box
+        API-->>E: 400 Coordinates outside Ghana
+    end
+    API->>API: content-type image/* or image file extension ?
+    alt not an image
+        API-->>E: 400 File must be a valid image
+    end
+    API->>API: read bytes, size <= 10 MB ?
+    alt too large
+        API-->>E: 413 Image too large
+    end
+    API->>API: PIL.Image.open().convert(RGB)
+    alt decode fails
+        API-->>E: 422 Could not decode image
+    end
+    alt model loaded and pothole-capable
+        API->>DET: predict(img) in threadpool
+        DET->>DET: YOLO.predict(conf=CONFIDENCE_THRESHOLD, imgsz=1024, augment=True)
+        DET->>DET: keep only label == pothole, round conf and bbox
+        DET-->>API: list of DetectionItem
+        API->>API: pothole_detected = any(conf >= 0.4)
+    else model unavailable
+        API->>API: mock DetectionItem (conf 0.88), pothole_detected = True
+    end
+    API->>API: max_conf = max(confidences) or 0.0
+    API->>REPO: save_detection(lat, lng, max_conf, detections, device_id, raw)
+    REPO->>REPO: rec_id = uuid4()
+    REPO->>FS: save uploads/{rec_id}.jpg (JPEG q90)
+    REPO->>REPO: status = confirmed if max_conf >= 0.4 else pending
+    REPO->>FS: _MOCK_STORE[rec_id] = record, write mock_detections.json
+    opt Supabase credentials valid
+        REPO->>DB: INSERT full row (with status, image_url)
+        alt insert fails (columns missing)
+            REPO->>DB: INSERT base row (no status / image_url)
+        end
+        Note over DB: trigger trg_set_location fills PostGIS location
+    end
+    REPO-->>API: rec_id
+    API-->>E: 200 DetectionResponse (id, pothole_detected, detections, coordinates, status, image_url, timestamp)

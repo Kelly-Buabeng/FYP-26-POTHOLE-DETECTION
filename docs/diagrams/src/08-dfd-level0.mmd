@@ -1,0 +1,24 @@
+flowchart LR
+    ESP["ESP32-CAM Field Unit"]
+    CIT["Citizen Reporter"]
+    ADM["Road Administrator"]
+    GHA["Ghana Highway Authority Analyst"]
+    MLE["ML Engineer"]
+
+    P0(("0<br/>Pothole Detection<br/>& Reporting System"))
+
+    ESP -->|road image, GPS lat/lng, device_id, API key| P0
+    P0 -->|detection result: boxes, confidence, status, record id| ESP
+    CIT -->|photo, GPS location| P0
+    P0 -->|submission receipt: id, pending status, image_url| CIT
+    ADM -->|status changes, delete requests, analyze requests| P0
+    P0 -->|detection lists, images, heatmap points, stats| ADM
+    GHA -->|report / export request, filters| P0
+    P0 -->|regional severity report, CSV, GeoJSON| GHA
+    MLE -->|trained weights best.pt| P0
+    P0 -->|health / model readiness| MLE
+
+    classDef ext fill:#fef3c7,stroke:#b45309,color:#111
+    classDef proc fill:#dbeafe,stroke:#1d4ed8,color:#111
+    class ESP,CIT,ADM,GHA,MLE ext
+    class P0 proc

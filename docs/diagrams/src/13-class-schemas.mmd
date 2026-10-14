@@ -1,0 +1,89 @@
+classDiagram
+    class BoundingBox {
+        +float x1
+        +float y1
+        +float x2
+        +float y2
+    }
+    class DetectionItem {
+        +str label
+        +float confidence  0..1
+        +BoundingBox bbox
+    }
+    class DetectionResponse {
+        +str id
+        +bool pothole_detected
+        +list~DetectionItem~ detections
+        +dict coordinates
+        +str device_id
+        +str timestamp
+        +str image_url
+        +str status
+    }
+    class SubmitResponse {
+        +str id
+        +str message
+        +str status = pending
+        +str device_id
+        +dict coordinates
+        +str image_url
+        +str timestamp
+    }
+    class StatusUpdateRequest {
+        +str status
+    }
+    class HeatmapPoint {
+        +str id
+        +float lat
+        +float lng
+        +float intensity  0..1
+        +str image_url
+    }
+    class StatsResponse {
+        +int total_detections
+        +float avg_confidence
+        +int devices_active
+        +bool mock_mode
+    }
+    class SeverityBreakdown {
+        +int high
+        +int medium
+        +int low
+    }
+    class RegionReport {
+        +str region
+        +int total
+        +float avg_confidence
+        +SeverityBreakdown severity_breakdown
+    }
+    class ReportResponse {
+        +str generated_at
+        +int total_detections
+        +list~RegionReport~ regions
+    }
+    class PotholeDetector {
+        -YOLO _model
+        -bool _pothole_capable
+        +load()
+        +predict(Image) list~DetectionItem~
+        +is_loaded bool
+        +is_pothole_capable bool
+    }
+    class Settings {
+        +str supabase_url
+        +str supabase_service_key
+        +str model_path
+        +float confidence_threshold
+        +float ghana_lat_min / max
+        +float ghana_lng_min / max
+        +str api_key
+        +str cors_origins
+        +str app_env
+        +cors_origin_list() list
+    }
+    BoundingBox --* DetectionItem
+    DetectionItem --o DetectionResponse
+    SeverityBreakdown --* RegionReport
+    RegionReport --o ReportResponse
+    PotholeDetector ..> DetectionItem : creates
+    PotholeDetector ..> Settings : reads

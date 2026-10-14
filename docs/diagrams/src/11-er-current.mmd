@@ -1,0 +1,26 @@
+erDiagram
+    DETECTIONS {
+        UUID id PK "gen_random_uuid()"
+        TEXT device_id "NOT NULL, default manual"
+        DOUBLE lat "NOT NULL"
+        DOUBLE lng "NOT NULL"
+        GEOGRAPHY location "Point 4326, set by trigger, GIST index"
+        DOUBLE confidence "0..1, max over boxes, indexed"
+        JSONB detections "array of DetectionItem"
+        TIMESTAMPTZ created_at "default NOW(), indexed DESC"
+        TEXT status "USED BY CODE, missing in schema.sql"
+        TEXT image_url "USED BY CODE, missing in schema.sql"
+    }
+    DETECTION_ITEM_JSON {
+        TEXT label "Pothole"
+        DOUBLE confidence "0..1"
+        DOUBLE x1 "bbox"
+        DOUBLE y1 "bbox"
+        DOUBLE x2 "bbox"
+        DOUBLE y2 "bbox"
+    }
+    IMAGE_FILE {
+        TEXT path "uploads/{id}.jpg"
+    }
+    DETECTIONS ||--o{ DETECTION_ITEM_JSON : "embeds (JSONB array)"
+    DETECTIONS ||--|| IMAGE_FILE : "image_url = /api/v1/images/{id}"

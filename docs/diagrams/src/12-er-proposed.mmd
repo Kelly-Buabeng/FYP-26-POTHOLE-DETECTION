@@ -1,0 +1,67 @@
+erDiagram
+    DEVICES ||--o{ DETECTIONS : "captures"
+    DETECTIONS ||--o{ DETECTION_OBJECTS : "contains"
+    DETECTIONS ||--o{ STATUS_HISTORY : "audited by"
+    REGIONS ||--o{ DETECTIONS : "located in"
+    MODEL_VERSIONS ||--o{ DETECTIONS : "analyzed by"
+    APP_USERS ||--o{ STATUS_HISTORY : "changed by"
+
+    DEVICES {
+        TEXT id PK "ESP32-CAM-ACCRA-01, manual, browser fingerprint"
+        TEXT device_type "esp32_cam | web | mobile"
+        TEXT description
+        TIMESTAMPTZ last_seen_at
+    }
+    REGIONS {
+        SERIAL id PK
+        TEXT name UK "Greater Accra, Ashanti, ... (16)"
+        TEXT capital
+        DOUBLE centroid_lat
+        DOUBLE centroid_lng
+    }
+    MODEL_VERSIONS {
+        SERIAL id PK
+        TEXT name "yolov8s pothole_v1"
+        TEXT weights_path "ml/weights/best.pt"
+        JSONB class_names "Pothole, other"
+        TIMESTAMPTZ trained_at
+    }
+    DETECTIONS {
+        UUID id PK
+        TEXT device_id FK
+        INT region_id FK "nearest_region()"
+        INT model_version_id FK "null until analyzed"
+        DOUBLE lat
+        DOUBLE lng
+        GEOGRAPHY location "trigger from lat/lng"
+        DOUBLE confidence "max object confidence"
+        TEXT severity "high | medium | low"
+        TEXT status "pending | confirmed | declined | fixed"
+        TEXT source "detect | submit"
+        TEXT image_url
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    DETECTION_OBJECTS {
+        BIGSERIAL id PK
+        UUID detection_id FK
+        TEXT label
+        DOUBLE confidence
+        DOUBLE x1
+        DOUBLE y1
+        DOUBLE x2
+        DOUBLE y2
+    }
+    STATUS_HISTORY {
+        BIGSERIAL id PK
+        UUID detection_id FK
+        TEXT old_status
+        TEXT new_status
+        UUID changed_by FK
+        TIMESTAMPTZ changed_at
+    }
+    APP_USERS {
+        UUID id PK
+        TEXT email UK
+        TEXT role "admin | gha_analyst"
+    }

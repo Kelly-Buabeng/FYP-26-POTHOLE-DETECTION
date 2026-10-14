@@ -1,0 +1,49 @@
+flowchart TB
+    subgraph Clients
+        ESP["ESP32-CAM + NEO-6M GPS"]
+        WEB["Frontend (Vercel)<br/>Map / Dashboard / Report form"]
+        GIS["QGIS / ArcGIS"]
+    end
+
+    subgraph API["FastAPI app (app/main.py)"]
+        MW["CORSMiddleware<br/>CORS_ORIGINS allow-list"]
+        SEC["security.require_api_key<br/>X-API-Key, constant-time compare"]
+        subgraph Routers["/api/v1 router"]
+            R1["report.py<br/>/report, /detections/export"]
+            R2["detect.py<br/>/submit, /detect, /analyze, /images,<br/>/detections CRUD + status"]
+            R3["heatmap.py<br/>/heatmap, /stats"]
+        end
+        H["/, /health"]
+    end
+
+    subgraph Services
+        DET["detector.PotholeDetector<br/>(singleton, loaded at startup)"]
+        REPO["detection_repo<br/>(dual-write repository)"]
+        GEO["geo.py<br/>nearest_region / severity_bucket"]
+        CFG["config.Settings<br/>(.env via pydantic-settings)"]
+    end
+
+    subgraph Storage
+        MOCK[("uploads/mock_detections.json<br/>in-memory _MOCK_STORE<br/>PRIMARY READ STORE")]
+        IMG[("uploads/{id}.jpg<br/>image files")]
+        DB[("Supabase Postgres + PostGIS<br/>table: detections<br/>write mirror")]
+        W[("ml/weights/best.pt<br/>yolov8n.pt fallback")]
+    end
+
+    ESP -->|multipart image+lat+lng| MW
+    WEB --> MW
+    GIS --> MW
+    MW --> SEC --> Routers
+    MW --> H
+    R2 --> DET
+    R2 --> REPO
+    R3 --> REPO
+    R1 --> REPO
+    R1 --> GEO
+    DET --> W
+    REPO --> MOCK
+    REPO --> IMG
+    REPO -.->|only if SUPABASE creds valid| DB
+    DET --> CFG
+    REPO --> CFG
+    SEC --> CFG

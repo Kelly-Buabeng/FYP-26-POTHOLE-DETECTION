@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+    participant U as Uvicorn
+    participant M as main.lifespan
+    participant D as PotholeDetector
+    participant Y as Ultralytics YOLO
+    participant S as Settings (.env)
+
+    U->>M: start app
+    M->>D: load()
+    alt ultralytics / torch import failed
+        D-->>M: _model = "fallback", pothole_capable = True
+    else ultralytics available
+        D->>S: model_path
+        loop candidates: MODEL_PATH, repo/yolov8n.pt, yolov8n.pt
+            D->>Y: YOLO(candidate)
+            alt loaded OK
+                Y-->>D: model (names e.g. Pothole, other)
+                D->>D: pothole_capable = "pothole" in class names
+                Note over D: stop at first successful candidate
+            else load error
+                Y-->>D: exception, try next candidate
+            end
+        end
+        opt every candidate failed
+            D-->>M: RuntimeError (app does not start)
+        end
+    end
+    M->>S: app_env, api_key, cors_origins
+    alt API_KEY empty or placeholder
+        alt APP_ENV = production
+            M-->>U: RuntimeError, refuse to start
+        else development
+            M->>M: print WARNING (auth disabled)
+        end
+    end
+    alt "*" in CORS_ORIGINS and production
+        M-->>U: RuntimeError, refuse to start
+    end
+    M-->>U: Ready (serve requests)

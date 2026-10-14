@@ -1,0 +1,48 @@
+sequenceDiagram
+    autonumber
+    actor C as Citizen Reporter
+    actor A as Administrator
+    participant API as FastAPI
+    participant REPO as detection_repo
+    participant FS as uploads/ (JSON + JPG)
+    participant DB as Supabase
+    participant DET as PotholeDetector
+
+    rect rgb(235, 244, 255)
+    Note over C,DB: Phase 1 - quick report, no ML (public endpoint)
+    C->>API: POST /api/v1/submit (image, lat, lng, device_id)
+    API->>API: validate Ghana bbox, image type, size <= 10 MB
+    API->>REPO: save_submission(lat, lng, device_id, raw)
+    REPO->>FS: save {id}.jpg
+    REPO->>FS: record (confidence 0.0, detections [], status pending)
+    opt Supabase configured
+        REPO->>DB: INSERT row (fallback to base columns on error)
+    end
+    REPO-->>API: SubmitResponse
+    API-->>C: 200 id, status pending, image_url
+    end
+
+    rect rgb(240, 253, 244)
+    Note over A,DET: Phase 2 - deferred ML analysis
+    A->>API: POST /api/v1/detections/{id}/analyze
+    API->>REPO: get_detection_by_id(id)
+    alt in local store
+        FS-->>REPO: record
+    else not local and Supabase configured
+        REPO->>DB: SELECT * WHERE id = {id}
+        DB-->>REPO: row (status / image_url defaulted if missing)
+    end
+    alt not found
+        API-->>A: 404 Detection submission not found
+    end
+    API->>REPO: get_image_file_path(id)
+    Note right of REPO: generates a placeholder JPG if file missing
+    API->>DET: predict(img) in threadpool (or mock if model unavailable)
+    DET-->>API: detections
+    API->>REPO: update_detection_results(id, max_conf, detections, status)
+    REPO->>FS: update record + JSON file
+    opt Supabase configured
+        REPO->>DB: UPDATE confidence, detections, status
+    end
+    API-->>A: 200 DetectionResponse (status confirmed or pending)
+    end

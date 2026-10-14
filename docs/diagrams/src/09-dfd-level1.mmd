@@ -1,0 +1,61 @@
+flowchart LR
+    ESP["ESP32-CAM"]
+    CIT["Citizen"]
+    ADM["Administrator"]
+    GHA["GHA Analyst"]
+    MLE["ML Engineer"]
+
+    P1(("1.0<br/>Validate Input<br/>auth, Ghana bbox,<br/>type, size, decode"))
+    P2(("2.0<br/>Run YOLOv8<br/>Inference"))
+    P3(("3.0<br/>Persist Detection<br/>dual-write"))
+    P4(("4.0<br/>Manage Detections<br/>analyze, status,<br/>delete"))
+    P5(("5.0<br/>Aggregate for<br/>Map & Stats"))
+    P6(("6.0<br/>Classify Region &<br/>Severity"))
+    P7(("7.0<br/>Report & Export"))
+    P8(("8.0<br/>Load Model<br/>at startup"))
+
+    D1[("D1 mock_detections.json<br/>local record store")]
+    D2[("D2 uploads/*.jpg<br/>image store")]
+    D3[("D3 Supabase detections<br/>PostGIS mirror")]
+    D4[("D4 Model weights<br/>best.pt / yolov8n.pt")]
+
+    ESP -->|image, lat, lng, device_id, X-API-Key| P1
+    CIT -->|image, lat, lng| P1
+    P1 -->|400/401/413/422 errors| ESP
+    P1 -->|valid RGB image /detect| P2
+    P1 -->|valid raw image /submit| P3
+    P2 -->|DetectionItems, max_conf, pothole_detected| P3
+    P3 -->|record JSON| D1
+    P3 -->|JPEG bytes| D2
+    P3 -.->|INSERT row| D3
+    P3 -->|DetectionResponse / SubmitResponse| ESP
+    P3 -->|SubmitResponse| CIT
+
+    MLE -->|best.pt| D4
+    D4 -->|weights| P8
+    P8 -->|loaded model, pothole_capable| P2
+
+    ADM -->|analyze id, new status, delete id| P4
+    D1 -->|record| P4
+    D2 -->|stored image| P4
+    P4 -->|stored image for re-analysis| P2
+    P4 -->|updated / removed record| D1
+    P4 -.->|UPDATE / DELETE| D3
+    P4 -->|deleted image| D2
+    P4 -->|record, image, list| ADM
+
+    D1 -->|filtered rows| P5
+    P5 -->|heatmap points, stats| ADM
+
+    D1 -->|filtered rows| P7
+    P7 -->|lat, lng, confidence| P6
+    P6 -->|region, severity| P7
+    GHA -->|format, min_confidence, X-API-Key| P7
+    P7 -->|ReportResponse, CSV, GeoJSON| GHA
+
+    classDef ext fill:#fef3c7,stroke:#b45309,color:#111
+    classDef proc fill:#dbeafe,stroke:#1d4ed8,color:#111
+    classDef store fill:#dcfce7,stroke:#15803d,color:#111
+    class ESP,CIT,ADM,GHA,MLE ext
+    class P1,P2,P3,P4,P5,P6,P7,P8 proc
+    class D1,D2,D3,D4 store

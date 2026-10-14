@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    actor A as Administrator (Dashboard)
+    participant API as FastAPI
+    participant SEC as require_api_key
+    participant REPO as detection_repo
+    participant FS as uploads/ (JSON + JPG)
+    participant DB as Supabase
+
+    A->>API: GET /api/v1/detections?status=pending&min_confidence=0
+    API->>REPO: get_all_detections(min_conf, limit, status)
+    REPO->>FS: read _MOCK_STORE, filter, sort created_at DESC
+    REPO-->>API: rows
+    API-->>A: 200 list of detections
+
+    A->>API: GET /api/v1/images/{id}
+    API->>REPO: get_image_file_path(id)
+    API-->>A: image/jpeg (FileResponse)
+
+    A->>API: PATCH /api/v1/detections/{id}/status {status: fixed}
+    API->>REPO: update_detection_status(id, status)
+    REPO->>REPO: invalid status coerced to confirmed
+    REPO->>REPO: get_detection_by_id(id)
+    alt not found
+        API-->>A: 404 Detection not found
+    else found
+        opt Supabase configured
+            REPO->>DB: UPDATE status WHERE id
+        end
+        REPO->>FS: save record + JSON
+        API-->>A: 200 updated record
+    end
+
+    A->>API: DELETE /api/v1/detections/{id} + X-API-Key
+    API->>SEC: verify key
+    alt invalid key
+        SEC-->>A: 401
+    end
+    API->>REPO: delete_detection(id)
+    REPO->>FS: remove from store, rewrite JSON
+    opt Supabase configured
+        REPO->>DB: DELETE WHERE id
+    end
+    REPO->>FS: os.remove({id}.jpg)
+    REPO-->>API: True (always)
+    API-->>A: 200 {deleted: id}
