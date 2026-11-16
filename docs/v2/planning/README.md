@@ -80,7 +80,7 @@ Status: ⬜ not started · 🟨 draft in repo · ✅ reviewed by the team
 
 | # | Deliverable | Owner | File | Status |
 |---|---|---|---|---|
-| 10 | **Requirements spec (SRS) v1**: user stories become numbered functional and non-functional requirements with acceptance criteria | Seth + Kelly | `10-srs.md` | ⬜ |
+| 10 | **Requirements spec (SRS) v1**: user stories become numbered functional and non-functional requirements with acceptance criteria | Seth + Kelly | Part 1: [10-functional-requirements.md](10-functional-requirements.md) 🟨 · Part 2 (non-functional): `10b-non-functional-requirements.md` ⬜ | 🟨 |
 | 11 | **Design diagrams pack** (see list below) | Kelly (+ all) | `11-diagrams.md` | ⬜ |
 | 12 | **Data collection protocol & labelling guide v1**: routes, devices, photo rules, label definitions | Nathaniel | `12-data-protocol.md` | ⬜ |
 | 13 | **6-month build plan**: two-week sprints, milestones, budget burn per month | Kelly | `13-build-plan.md` | ⬜ |
