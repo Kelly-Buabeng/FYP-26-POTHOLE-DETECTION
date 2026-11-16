@@ -425,6 +425,13 @@ road-hazard-platform/
 
 ## 12. Roadmap
 
+> **Update (Nov 2026):** the funded plan is now **6 months on GHS 60,000** (see
+> `docs/v2/planning/`). It covers the MVP, model v1 and a pilot with the University of
+> Ghana community. The phases below are the long-term roadmap; the planning stage
+> sets the exact 6-month plan. With GHS 16,000 for cloud and AI over 6 months, §7's
+> 2,000-user sizing is a growth target. The pilot runs on a smaller setup that still
+> passes the 200-user load test.
+
 | Phase | Duration (estimate) | Deliverables |
 |---|---|---|
 | **0. Foundations** | 2–3 wks | Finalise this doc + ADRs; licence decision for ML; monorepo, CI, Docker Compose dev env; DB schema + migrations; auth (OTP). Start **Ghana data collection** in parallel. |
