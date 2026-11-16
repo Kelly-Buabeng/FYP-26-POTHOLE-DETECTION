@@ -61,6 +61,7 @@ Status: ⬜ not started · 🟨 draft in repo · ✅ reviewed by the team
 | 1 | **Project charter**: scope, objectives, constraints, what is out of scope | Kelly | [01-project-charter.md](01-project-charter.md) | 🟨 |
 | 2 | **Stakeholder register & outreach plan**: who we need, what we ask, when | Kelly | [02-stakeholders.md](02-stakeholders.md) | 🟨 |
 | 3 | **Personas & user stories** with priorities | Seth | [03-requirements.md](03-requirements.md) | 🟨 |
+| 3b | **Feature list**: must-have, should-have, nice-to-have, later | Kelly + all | [features.md](features.md) | 🟨 |
 | 4 | **Dataset & model licence survey**: RDD2022 and other sets (size, classes, licence); YOLO (AGPL) vs RT-DETR / RF-DETR (Apache-2.0) | Nathaniel | `04-dataset-survey.md` | ⬜ |
 
 **End of week 1:** a 30-minute team check. Is the scope still right for GHS 60k and 6 months?
