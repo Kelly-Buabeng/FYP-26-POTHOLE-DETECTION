@@ -70,6 +70,21 @@ service (most likely `notifications` or `geo`), we can extract it without a rewr
 
 ## 3. High-level architecture
 
+### Pilot architecture (funded scope, Nov 2026)
+
+![Road Hazard Platform v2 pilot system architecture](diagrams/system-architecture.svg)
+
+This is the architecture we will build in the funded 6-month pilot (GHS 60,000). It keeps
+the design below: a modular monolith, a separate ML worker, direct photo uploads and async
+processing. To fit the GHS 16,000 cloud budget, the API, background jobs and Redis share
+**one small VM** run with Docker Compose, and the ML worker runs on CPU. The API modules
+match the functional requirement areas in
+[`planning/10-functional-requirements.md`](planning/10-functional-requirements.md).
+Editable source: `diagrams/system-architecture.svg`; PNG for slides:
+`diagrams/system-architecture.png`.
+
+### Full-scale architecture (growth target)
+
 ```mermaid
 flowchart LR
     subgraph Clients

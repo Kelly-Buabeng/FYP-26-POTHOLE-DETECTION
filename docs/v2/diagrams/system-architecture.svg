@@ -1,0 +1,191 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1010" width="1600" height="1010" role="img" aria-label="Road Hazard Platform v2 pilot system architecture: the Android app, authority dashboard and public map reach a Core API on one app server through a CDN; photos upload directly to object storage; the API uses PostgreSQL with PostGIS and Redis; background jobs and an ML worker process reports; notifications go out by SMS, push and email; an offline ML pipeline trains and deploys the model.">
+  <title>Road Hazard Platform v2: pilot system architecture</title>
+  <style>
+    text { font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; font-size: 13px; fill: #13202b; }
+    .h1 { font-size: 24px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #586979; }
+    .t { font-weight: 600; }
+    .s { font-size: 11.5px; fill: #586979; }
+    .m { text-anchor: middle; }
+    .end { text-anchor: end; }
+    .cap { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; fill: #586979; }
+    .lbl { font-size: 11.5px; fill: #586979; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .lbl.hot { fill: #c2410c; font-weight: 500; }
+    .b { stroke-width: 1.5; }
+    .app { fill: #eaf1fb; stroke: #2563b8; }
+    .core { fill: #e6f4ef; stroke: #0b8466; }
+    .data { fill: #fbf1e1; stroke: #a8670a; }
+    .ai { fill: #f0ebfa; stroke: #7048c8; }
+    .ext { fill: #f1f3f6; stroke: #64748b; }
+    .zone { fill: #f7fbf9; stroke: #0b8466; stroke-width: 1.2; stroke-dasharray: 7 5; }
+    .zone-ml { fill: #faf8fe; stroke: #7048c8; stroke-width: 1.2; stroke-dasharray: 7 5; }
+    .ln { fill: none; stroke: #516273; stroke-width: 1.5; }
+    .e { fill: none; stroke: #516273; stroke-width: 1.5; marker-end: url(#ah); }
+    .e.both { marker-start: url(#ah); }
+    .e.dash { stroke-dasharray: 5 4; }
+    .e.hot { stroke: #d4480b; stroke-width: 2; marker-end: url(#ahh); }
+    .badge { fill: #d4480b; }
+    .bt { fill: #ffffff; font-size: 11px; font-weight: 700; text-anchor: middle; }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#516273"/></marker>
+    <marker id="ahh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d4480b"/></marker>
+  </defs>
+  <rect width="1600" height="1010" fill="#ffffff"/>
+
+  <!-- title -->
+  <text class="h1" x="30" y="40">Road Hazard Platform v2: pilot system architecture</text>
+  <text class="sub" x="30" y="63">Funded scope: 6 months · GHS 60,000 · Android app, authority dashboard, public map · pilot with the University of Ghana community</text>
+
+  <!-- photo upload path -->
+  <path class="e hot" d="M200,130 V88 H1375 V366 H1351"/>
+  <circle class="badge" cx="300" cy="88" r="10"/><text class="bt" x="300" y="92">1</text>
+  <text class="lbl hot" x="322" y="82">Photos upload straight to storage with a 10-minute signed link, never through the API</text>
+
+  <!-- users and apps -->
+  <text class="cap" x="30" y="114">USERS &amp; APPS</text>
+  <rect class="b app" x="30" y="130" width="230" height="72" rx="8"/>
+  <text class="t" x="44" y="154">Android app</text><text class="s" x="44" y="170">citizens · React Native</text><text class="s" x="44" y="186">camera, GPS, offline queue</text>
+  <rect class="b app" x="30" y="230" width="230" height="72" rx="8"/>
+  <text class="t" x="44" y="254">Web dashboard</text><text class="s" x="44" y="270">officers, moderators, admins</text><text class="s" x="44" y="286">Next.js · 2-step login</text>
+  <rect class="b app" x="30" y="330" width="230" height="72" rx="8"/>
+  <text class="t" x="44" y="354">Public web map</text><text class="s" x="44" y="370">anyone · no sign-in</text><text class="s" x="44" y="386">Next.js + MapLibre</text>
+  <line class="ln" x1="260" y1="166" x2="282" y2="166"/>
+  <line class="ln" x1="260" y1="266" x2="282" y2="266"/>
+  <line class="ln" x1="260" y1="366" x2="282" y2="366"/>
+  <line class="ln" x1="282" y1="166" x2="282" y2="366"/>
+  <path class="e" d="M282,254 H309"/>
+  <text class="lbl m" transform="translate(296,320) rotate(-90)">HTTPS</text>
+
+  <!-- edge -->
+  <text class="cap" x="310" y="200">EDGE</text>
+  <rect class="b ext" x="310" y="210" width="170" height="88" rx="8"/>
+  <text class="t" x="324" y="234">CDN + firewall</text><text class="s" x="324" y="250">Cloudflare · TLS</text><text class="s" x="324" y="266">caches public data</text><text class="s" x="324" y="282">serves blurred photos</text>
+  <path class="e" d="M480,254 H549"/>
+  <circle class="badge" cx="515" cy="254" r="10"/><text class="bt" x="515" y="258">2</text>
+
+  <!-- app server zone -->
+  <rect class="zone" x="530" y="120" width="550" height="490" rx="12"/>
+  <text class="t" x="548" y="146">App server · one small cloud VM · Docker Compose</text>
+  <text class="s" x="548" y="164">Grows by adding API copies behind the proxy if the pilot needs it</text>
+  <rect class="b core" x="550" y="180" width="56" height="290" rx="8"/>
+  <text class="t m" transform="translate(583,325) rotate(-90)">Reverse proxy (Caddy)</text>
+  <path class="e" d="M606,320 H629"/>
+
+  <rect class="b core" x="630" y="180" width="430" height="290" rx="10"/>
+  <text class="t" x="648" y="204">Core API · FastAPI modular monolith</text>
+  <text class="s" x="648" y="222">stateless · one codebase · OpenAPI docs</text>
+  <!-- modules: 3 cols x 4 rows -->
+  <rect class="b core" x="648" y="236" width="124" height="44" rx="7"/><text class="t" x="658" y="254">auth</text><text class="s" x="658" y="271">phone OTP · 2FA</text>
+  <rect class="b core" x="785" y="236" width="124" height="44" rx="7"/><text class="t" x="795" y="254">reports</text><text class="s" x="795" y="271">submit · offline sync</text>
+  <rect class="b core" x="922" y="236" width="124" height="44" rx="7"/><text class="t" x="932" y="254">media</text><text class="s" x="932" y="271">upload links</text>
+  <rect class="b core" x="648" y="288" width="124" height="44" rx="7"/><text class="t" x="658" y="306">incidents</text><text class="s" x="658" y="323">merge · status</text>
+  <rect class="b core" x="785" y="288" width="124" height="44" rx="7"/><text class="t" x="795" y="306">routing</text><text class="s" x="795" y="323">authority areas</text>
+  <rect class="b core" x="922" y="288" width="124" height="44" rx="7"/><text class="t" x="932" y="306">maps</text><text class="s" x="932" y="323">public map data</text>
+  <rect class="b core" x="648" y="340" width="124" height="44" rx="7"/><text class="t" x="658" y="358">dashboard</text><text class="s" x="658" y="375">officer tools</text>
+  <rect class="b core" x="785" y="340" width="124" height="44" rx="7"/><text class="t" x="795" y="358">moderation</text><text class="s" x="795" y="375">review queue</text>
+  <rect class="b core" x="922" y="340" width="124" height="44" rx="7"/><text class="t" x="932" y="358">notifications</text><text class="s" x="932" y="375">push, SMS, email</text>
+  <rect class="b core" x="648" y="392" width="124" height="44" rx="7"/><text class="t" x="658" y="410">admin</text><text class="s" x="658" y="427">areas · officers</text>
+  <rect class="b core" x="785" y="392" width="124" height="44" rx="7"/><text class="t" x="795" y="410">catalogue</text><text class="s" x="795" y="427">hazard types</text>
+  <rect class="b core" x="922" y="392" width="124" height="44" rx="7"/><text class="t" x="932" y="410">privacy</text><text class="s" x="932" y="427">audit · deletion</text>
+  <text class="s m" x="845" y="458">Modules share one database but never read each other's tables</text>
+
+  <rect class="b ai" x="630" y="500" width="220" height="72" rx="8"/>
+  <text class="t" x="644" y="524">Background jobs</text><text class="s" x="644" y="540">Celery worker + scheduler</text><text class="s" x="644" y="556">merge · route · expire · notify</text>
+  <rect class="b data" x="900" y="500" width="160" height="72" rx="8"/>
+  <text class="t" x="914" y="524">Redis</text><text class="s" x="914" y="540">job queues · cache</text><text class="s" x="914" y="556">rate limits</text>
+
+  <path class="e" d="M980,470 V499"/>
+  <circle class="badge" cx="980" cy="485" r="10"/><text class="bt" x="980" y="489">3</text>
+  <text class="lbl" x="996" y="489">enqueue</text>
+  <path class="e" d="M740,500 V471"/>
+  <circle class="badge" cx="740" cy="485" r="10"/><text class="bt" x="740" y="489">5</text>
+  <text class="lbl" x="756" y="489">runs module logic</text>
+  <path class="e" d="M899,536 H851"/>
+  <text class="lbl m" x="875" y="528">jobs</text>
+
+  <!-- data -->
+  <text class="cap" x="1130" y="114">DATA &amp; AI</text>
+  <rect class="b data" x="1130" y="200" width="220" height="72" rx="8"/>
+  <text class="t" x="1144" y="224">PostgreSQL + PostGIS</text><text class="s" x="1144" y="240">managed · daily backups</text><text class="s" x="1144" y="256">reports, incidents, areas, audit</text>
+  <rect class="b data" x="1130" y="330" width="220" height="72" rx="8"/>
+  <text class="t" x="1144" y="354">Object storage (S3)</text><text class="s" x="1144" y="370">originals: private</text><text class="s" x="1144" y="386">blurred copies: via CDN</text>
+  <path class="e" d="M1060,236 H1129"/><text class="lbl m" x="1095" y="228">SQL</text>
+  <path class="e" d="M1060,366 H1129"/><text class="lbl m" x="1095" y="358">signs URLs</text>
+
+  <rect class="b ai" x="1130" y="500" width="220" height="72" rx="8"/>
+  <text class="t" x="1144" y="524">ML worker</text><text class="s" x="1144" y="540">ONNX Runtime · CPU</text><text class="s" x="1144" y="556">detect · scene check · blur</text>
+  <path class="e" d="M1060,524 H1129"/>
+  <circle class="badge" cx="1095" cy="524" r="10"/><text class="bt" x="1095" y="528">4</text>
+  <path class="e" d="M1129,552 H1061"/><text class="lbl m" x="1095" y="569">results</text>
+  <path class="e both" d="M1240,499 V403"/>
+  <text class="lbl end" x="1232" y="446">reads photo</text>
+  <text class="lbl end" x="1232" y="462">saves blurred copy</text>
+
+  <!-- monitoring -->
+  <rect class="b ext" x="1400" y="500" width="170" height="72" rx="8"/>
+  <text class="t" x="1414" y="524">Monitoring</text><text class="s" x="1414" y="540">Sentry · uptime checks</text><text class="s" x="1414" y="556">all parts report errors</text>
+  <path class="e dash" d="M1350,536 H1399"/>
+
+  <!-- outside services -->
+  <text class="cap" x="30" y="432">OUTSIDE SERVICES</text>
+  <rect class="b ext" x="30" y="440" width="230" height="56" rx="8"/>
+  <text class="t" x="44" y="464">OpenStreetMap tiles</text><text class="s" x="44" y="481">free base maps</text>
+  <path class="e" d="M240,440 V403"/>
+  <text class="lbl end" x="234" y="426">map tiles</text>
+  <rect class="b ext" x="30" y="530" width="230" height="56" rx="8"/>
+  <text class="t" x="44" y="554">SMS gateway</text><text class="s" x="44" y="571">login codes</text>
+  <rect class="b ext" x="30" y="600" width="230" height="56" rx="8"/>
+  <text class="t" x="44" y="624">Firebase push</text><text class="s" x="44" y="641">report status alerts</text>
+  <rect class="b ext" x="30" y="670" width="230" height="56" rx="8"/>
+  <text class="t" x="44" y="694">Email service</text><text class="s" x="44" y="711">invites · urgent alerts</text>
+  <path class="ln" d="M630,536 H300 V698"/>
+  <path class="e" d="M300,558 H261"/>
+  <path class="e" d="M300,628 H261"/>
+  <path class="e" d="M300,698 H261"/>
+  <circle class="badge" cx="380" cy="536" r="10"/><text class="bt" x="380" y="540">6</text>
+  <text class="lbl" x="398" y="528">codes, alerts, emails</text>
+
+  <!-- links to offline pipeline -->
+  <path class="e dash" d="M680,572 V740 H412 V799"/>
+  <text class="lbl m" x="546" y="732">moderator decisions become new labels</text>
+  <path class="e" d="M1420,800 V740 H1240 V573"/>
+  <text class="lbl m" x="1330" y="732">deploy approved model</text>
+
+  <!-- offline ML pipeline -->
+  <rect class="zone-ml" x="30" y="760" width="1540" height="140" rx="12"/>
+  <text class="cap" x="50" y="784">OFFLINE ML PIPELINE · COLAB OR UG GPU · NOT PART OF THE LIVE SYSTEM</text>
+  <rect class="b ext" x="50" y="800" width="220" height="72" rx="8"/>
+  <text class="t" x="64" y="824">Data sources</text><text class="s" x="64" y="840">RDD2022 + public sets</text><text class="s" x="64" y="856">Ghana road photo drive</text>
+  <rect class="b ai" x="302" y="800" width="220" height="72" rx="8"/>
+  <text class="t" x="316" y="824">Labelling</text><text class="s" x="316" y="840">Label Studio or CVAT</text><text class="s" x="316" y="856">shared labelling guide</text>
+  <rect class="b data" x="554" y="800" width="220" height="72" rx="8"/>
+  <text class="t" x="568" y="824">Versioned dataset</text><text class="s" x="568" y="840">DVC · split by road</text><text class="s" x="568" y="856">Ghana-only test set</text>
+  <rect class="b ai" x="806" y="800" width="220" height="72" rx="8"/>
+  <text class="t" x="820" y="824">Train &amp; evaluate</text><text class="s" x="820" y="840">compare candidate models</text><text class="s" x="820" y="856">target: ≥ 85% recall</text>
+  <rect class="b data" x="1058" y="800" width="220" height="72" rx="8"/>
+  <text class="t" x="1072" y="824">Model registry</text><text class="s" x="1072" y="840">MLflow · model cards</text><text class="s" x="1072" y="856">version + test scores</text>
+  <rect class="b ai" x="1310" y="800" width="220" height="72" rx="8"/>
+  <text class="t" x="1324" y="824">Approved model</text><text class="s" x="1324" y="840">exported to ONNX</text><text class="s" x="1324" y="856">copied to the ML worker</text>
+  <path class="e" d="M270,836 H301"/>
+  <path class="e" d="M522,836 H553"/>
+  <path class="e" d="M774,836 H805"/>
+  <path class="e" d="M1026,836 H1057"/>
+  <path class="e" d="M1278,836 H1309"/>
+
+  <!-- step key -->
+  <circle class="badge" cx="40" cy="942" r="9"/><text class="bt" x="40" y="946">1</text><text x="56" y="946">Photo goes straight to storage</text>
+  <circle class="badge" cx="430" cy="942" r="9"/><text class="bt" x="430" y="946">2</text><text x="446" y="946">Report sent through the CDN to the API</text>
+  <circle class="badge" cx="820" cy="942" r="9"/><text class="bt" x="820" y="946">3</text><text x="836" y="946">Saved in PostgreSQL and queued</text>
+  <circle class="badge" cx="1210" cy="942" r="9"/><text class="bt" x="1210" y="946">4</text><text x="1226" y="946">ML worker checks the photo, blurs faces and plates</text>
+  <circle class="badge" cx="40" cy="972" r="9"/><text class="bt" x="40" y="976">5</text><text x="56" y="976">Merged into an incident, routed to its authority</text>
+  <circle class="badge" cx="430" cy="972" r="9"/><text class="bt" x="430" y="976">6</text><text x="446" y="976">Citizen and officers notified</text>
+  <circle class="badge" cx="820" cy="972" r="9"/><text class="bt" x="820" y="976">7</text><text x="836" y="976">Officer updates status; citizen sees it in My reports</text>
+
+  <!-- colour key -->
+  <rect class="b app" x="1210" y="965" width="14" height="14" rx="3"/><text class="s" x="1230" y="977">apps</text>
+  <rect class="b core" x="1276" y="965" width="14" height="14" rx="3"/><text class="s" x="1296" y="977">core</text>
+  <rect class="b data" x="1340" y="965" width="14" height="14" rx="3"/><text class="s" x="1360" y="977">data</text>
+  <rect class="b ai" x="1402" y="965" width="14" height="14" rx="3"/><text class="s" x="1422" y="977">AI / jobs</text>
+  <rect class="b ext" x="1490" y="965" width="14" height="14" rx="3"/><text class="s" x="1510" y="977">outside</text>
+</svg>

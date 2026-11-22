@@ -93,7 +93,7 @@ Already drafted: the [architecture page](../ARCHITECTURE.md), plus the interacti
 | Diagram | Shows | Owner |
 |---|---|---|
 | Context diagram (C4 level 1) | The system, its users and the outside systems it talks to | Kelly |
-| Container diagram (C4 level 2) | App, API, workers, databases (simplify the existing overview) | Kelly |
+| Container diagram (C4 level 2) | App, API, workers, databases. **Draft done:** [system-architecture.svg](../diagrams/system-architecture.svg) | Kelly |
 | Use case diagram | What each actor (citizen, authority officer, moderator, admin) can do | Seth |
 | User flow diagrams | Screen-by-screen path for each of the 3 report types | Seth |
 | Entity-relationship diagram | Tables and relationships (start from §4 of the architecture doc) | Kelly |
