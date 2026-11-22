@@ -72,7 +72,10 @@ service (most likely `notifications` or `geo`), we can extract it without a rewr
 
 ### Pilot architecture (funded scope, Nov 2026)
 
-![Road Hazard Platform v2 pilot system architecture](diagrams/system-architecture.svg)
+![Road Hazard Platform v2 pilot system architecture](system-architecture/system-architecture.png)
+
+The diagram is maintained in Lucidchart. See [`system-architecture/`](system-architecture/README.md) for the
+editable link and a walkthrough. An earlier hand-drawn version is in `diagrams/system-architecture.svg`.
 
 This is the architecture we will build in the funded 6-month pilot (GHS 60,000). It keeps
 the design below: a modular monolith, a separate ML worker, direct photo uploads and async
